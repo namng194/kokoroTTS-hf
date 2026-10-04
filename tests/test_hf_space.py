@@ -178,7 +178,8 @@ class TestDeployHelper(unittest.TestCase):
             self.assertEqual(proc.returncode, 0, proc.stderr)
             from pathlib import Path
             reqs = (Path(staged) / "requirements.txt").read_text(encoding="utf-8")
-        self.assertIn("torch==2.11.0+cu130", reqs)
+        self.assertIn("torch==2.11.0\n", reqs)
+        self.assertNotIn("+cu130", reqs)
         self.assertIn("download.pytorch.org/whl/cu130", reqs)
         self.assertNotIn("download.pytorch.org/whl/cpu", reqs)
         self.assertIn("spaces==0.51.3", reqs)

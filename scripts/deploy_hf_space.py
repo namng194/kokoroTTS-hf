@@ -94,10 +94,14 @@ def flatten_gradio_requirements(torch_variant: str = "cpu") -> str:
             line for line in gpu_lines
             if line.startswith(CUDA_STACK_PREFIXES)
         ]
-        cuda_torch = next(
+        cuda_torch_pinned = next(
             line for line in gpu_lines
             if line.startswith("torch==") and "+cu" in line
         )
+        # ZeroGPU validates the torch pin against a supported-versions list
+        # and rejects local segments ("2.11.0+cu130"); the bare version
+        # still resolves to the cu130 wheel on the cu130-only index.
+        cuda_torch = cuda_torch_pinned.split("+")[0]
         lines = [
             line for line in lines
             if not line.startswith("torch==")
