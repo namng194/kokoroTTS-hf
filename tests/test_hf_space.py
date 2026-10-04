@@ -145,6 +145,8 @@ class TestDeployHelper(unittest.TestCase):
         )
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertIn("app.py", proc.stdout)
+        # pyopenjtalk is source-only: the Space must install build tools.
+        self.assertIn("packages.txt", proc.stdout)
 
     def test_stage_dir_needs_no_token(self):
         import os

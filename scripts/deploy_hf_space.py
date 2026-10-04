@@ -46,6 +46,7 @@ GRADIO_FILES = [
     ("spaces/gradio_app.py", "app.py"),
     ("spaces/requirements-gradio.txt", "requirements.txt"),
     ("spaces/README.md", "README.md"),
+    ("spaces/packages.txt", "packages.txt"),
     ("requirements-hf.txt", "requirements-hf.txt"),
     ("VERSION", "VERSION"),
     ("LICENSE", "LICENSE"),
