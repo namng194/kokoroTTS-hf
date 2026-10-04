@@ -65,14 +65,17 @@ from .schemas import (
     TTSRequest,
 )
 from .ssml import SSMLSynthesisUnit, SSMLValidationError
+from .space import build_runtime_kwargs, check_text_length
 
 APP_VERSION = os.getenv("APP_VERSION", KOKORO_VERSION)
 BUILD_ID = os.getenv("BUILD_ID", "stable")
 DEFAULT_DEVICE = os.getenv("KOKOROTTS_DEVICE", "auto")
 
 # Tiny images intentionally download all advertised voices before readiness so every
-# language behaves predictably for UI and API users.
-RUNTIME = InferenceRuntime(eager_voices=True)
+# language behaves predictably for UI and API users. Constrained deployments
+# (HF Spaces, CPU-only hosts) can lean the boot via KOKOROTTS_PRELOAD=
+# standard|lazy; the default `all` preserves historical behavior exactly.
+RUNTIME = InferenceRuntime(**build_runtime_kwargs())
 
 
 @dataclass(frozen=True)
@@ -151,6 +154,10 @@ def validate_request(
 ) -> tuple[str, str]:
     if not payload.text.strip():
         raise HTTPException(status_code=400, detail="Text must not be empty")
+    try:
+        check_text_length(payload.text)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     if not RUNTIME.serves_voice(payload.voice):
         raise HTTPException(
             status_code=400,

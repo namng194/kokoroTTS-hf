@@ -43,6 +43,15 @@ Notes:
 - First generation downloads weights (~300MB for Kokoro-82M + voice packs)
   into `/data/hf-cache` (the only persistent dir on Spaces). Later requests
   reuse them.
+- **Lean boot**: the Space image sets `KOKOROTTS_PRELOAD=standard`, so it
+  boots with the 54 standard voices eager and loads the German/Vietnamese
+  checkpoints only when you enable those families (System tab → model packs,
+  or `PUT /system/settings/model-families`). Choices persist in `/data`.
+  Set `KOKOROTTS_PRELOAD=all` for the full 70-voice eager boot, or `lazy`
+  for the smallest possible cold start (every voice loads on first use).
+- **Abuse guard**: `KOKOROTTS_MAX_CHARS=5000` rejects oversized requests
+  with HTTP 400 (OpenAI-shaped error on `/v1/*`). Unset it for unlimited,
+  exactly like local Docker runs.
 - Optional env vars on the Space: `KOKOROTTS_API_KEY` (Bearer auth for
   `/v1/*`), `HF_TOKEN` (only if a gated asset ever needs it — default assets
   are public, leave unset).
@@ -63,8 +72,8 @@ Notes:
    ```
 3. Open the Space, type text, pick a starter voice, press **Generate**.
 
-Limits of the demo flavour: starter voice set only, WAV output, no streaming,
-no OpenAI API. It is a teaser for the Docker flavour.
+Limits of the demo flavour: WAV output only, no streaming, no OpenAI API,
+one request at a time. It is a teaser for the Docker flavour.
 
 ## Local VRAM notes (RTX 3070 Ti 8GB and similar)
 

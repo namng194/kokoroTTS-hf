@@ -43,6 +43,10 @@ class TestDockerfileHf(unittest.TestCase):
     def test_cpu_default_device(self):
         self.assertRegex(self.content, r"KOKOROTTS_DEVICE=cpu")
 
+    def test_lean_boot_profile(self):
+        self.assertRegex(self.content, r"KOKOROTTS_PRELOAD=standard")
+        self.assertRegex(self.content, r"KOKOROTTS_MAX_CHARS=\d+")
+
     def test_no_cuda_baked_assets(self):
         # The HF image must stay small: no prefetch of weights at build time.
         self.assertNotIn("prefetch_assets", self.content)
@@ -76,18 +80,20 @@ class TestGradioApp(unittest.TestCase):
         src = read("spaces/gradio_app.py")
         tree = ast.parse(src)
         # Only module-level imports matter: function-level imports of heavy
-        # deps (gradio inside build_demo, kokorotts inside get_runtime) are
-        # the lazy pattern we want.
-        top_imports = set()
+        # deps (gradio inside build_demo, runtime inside get_runtime) are
+        # the lazy pattern we want. kokorotts.catalog/space are light
+        # (stdlib-only) and allowed at top level for the voice dropdown.
+        top_modules = set()
         for node in tree.body:
             if isinstance(node, ast.Import):
-                top_imports.update(a.name.split(".")[0] for a in node.names)
+                top_modules.update(a.name for a in node.names)
             elif isinstance(node, ast.ImportFrom) and node.module:
-                top_imports.add(node.module.split(".")[0])
-        for heavy in ("torch", "gradio", "kokorotts"):
-            self.assertNotIn(heavy, top_imports, f"{heavy} must be imported lazily")
+                top_modules.add(node.module)
+        for heavy in ("torch", "gradio", "kokorotts.runtime", "kokorotts.api"):
+            self.assertNotIn(heavy, top_modules, f"{heavy} must be imported lazily")
         self.assertIn("def generate", src)
         self.assertIn("def get_runtime", src)
+        self.assertIn("voice_choices", src)
 
     def test_space_frontmatter(self):
         readme = read("spaces/README.md")

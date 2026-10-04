@@ -1,20 +1,16 @@
-"""Lightweight Gradio demo for Hugging Face Spaces (free CPU tier).
+"""Full-catalogue Gradio demo for Hugging Face Spaces (free CPU tier).
 
-This is the *alternative* Space flavour: `sdk: gradio`, no Docker build step,
-small cold start. The recommended production flavour is the Docker Space
-(see Dockerfile.hf + docs/HF_SPACES.md) which serves the full browser UI and
-both HTTP APIs. This Gradio app exists so the project is one-click deployable
-on a free CPU Space.
+This is the *demo* Space flavour (``sdk: gradio``). Unlike a minimal teaser,
+it serves the complete 70-voice catalogue grouped by language and honors the
+constrained-host profiles from ``kokorotts.space``:
 
-Design notes for constrained hosts:
-- CPU only (`KOKOROTTS_DEVICE=cpu` default); Kokoro-82M runs fine on CPU,
-  just slower than GPU. First request downloads weights (~300MB) then caches
-  under HF_HOME (/data on Spaces).
-- Lazy singleton runtime: nothing loads at import time, so the Space boots
-  fast and only pays inference cost on first generation.
-- Small default voice list keeps the dropdown usable; any voice id accepted
-  via the API flavour remains available in the Docker Space.
-- Experimental SSML is intentionally NOT exposed here; plain text only.
+- ``KOKOROTTS_PRELOAD``: ``all`` (default) | ``standard`` | ``lazy``
+- ``KOKOROTTS_MAX_CHARS``: per-request text guard for public deployments
+
+The recommended production flavour remains the Docker Space (``Dockerfile.hf``)
+with the full browser workspace + OpenAI-compatible API; see
+``docs/HF_SPACES.md``. Both flavours share one inference stack, so a voice
+that works here works identically there.
 
 Run locally (CPU, no GPU touched):
     pip install -r spaces/requirements-gradio.txt
@@ -26,31 +22,34 @@ from __future__ import annotations
 import os
 import threading
 
+from kokorotts.catalog import LANGUAGE_CHOICES, voice_ids, voice_label, voice_language
+from kokorotts.space import (
+    build_runtime_kwargs,
+    check_text_length,
+    profile_summary,
+)
+
 SAMPLE_RATE = 24000
 DEFAULT_VOICE = os.getenv("KOKOROTTS_HF_DEFAULT_VOICE", "af_heart")
 DEFAULT_TEXT = (
-    "Hello from KokoroTTS on Hugging Face Spaces. "
-    "Type any text, pick a voice, and press Generate."
+    "Hello from KokoroTTS-HF on Hugging Face Spaces. "
+    "Type any text, pick any of the 70 voices, and press Generate."
 )
-
-# A compact, multilingual starter set. Full 70-voice catalogue lives in
-# kokorotts/catalog.py and in the Docker Space UI.
-STARTER_VOICES = [
-    "af_heart",
-    "af_bella",
-    "am_michael",
-    "bf_emma",
-    "jf_alpha",
-    "zf_xiaobei",
-    "ef_dora",
-    "ff_siwis",
-    "dm_martin",
-    "df_victoria",
-    "diem_trinh",
-]
 
 _runtime = None
 _runtime_lock = threading.Lock()
+
+
+def voice_choices() -> list[tuple[str, str]]:
+    """All voices as (label, id) pairs grouped by language for Gradio."""
+    grouped: list[tuple[str, str]] = []
+    for code in LANGUAGE_CHOICES:
+        for voice_id in voice_ids():
+            if voice_language(voice_id) == code:
+                grouped.append(
+                    (f"{LANGUAGE_CHOICES[code]} — {voice_label(voice_id)}", voice_id)
+                )
+    return grouped
 
 
 def get_runtime():
@@ -64,20 +63,17 @@ def get_runtime():
         from kokorotts.runtime import InferenceRuntime
         from kokorotts.settings import RuntimeSettingsStore
 
-        # Limit eagerly prepared voices on tiny hosts: the starter set only.
-        # The Docker Space keeps the full catalogue; here we trade breadth
-        # for cold-start time and RAM on free CPU hardware.
-        store = RuntimeSettingsStore()
-        try:
-            store.set_served_voices(list(STARTER_VOICES))
-        except Exception:
-            pass
-        _runtime = InferenceRuntime(settings=store, eager_voices=True)
+        _runtime = InferenceRuntime(
+            settings=RuntimeSettingsStore(), **build_runtime_kwargs()
+        )
         return _runtime
 
 
 def generate(text: str, voice: str, speed: float):
-    text = (text or "").strip()
+    try:
+        text = check_text_length(text)
+    except ValueError as exc:
+        raise ValueError(str(exc)) from exc
     if not text:
         raise ValueError("Please enter some text first.")
     speed = max(0.25, min(4.0, float(speed or 1.0)))
@@ -93,20 +89,29 @@ def generate(text: str, voice: str, speed: float):
 def build_demo():
     import gradio as gr
 
-    with gr.Blocks(title="KokoroTTS-HF (CPU demo)") as demo:
+    summary = profile_summary()
+    limit = summary["max_chars"]
+    guard_line = (
+        f"Max {limit} characters per request on this deployment."
+        if limit else "No per-request character limit on this deployment."
+    )
+
+    with gr.Blocks(title="KokoroTTS-HF (70 voices, CPU)") as demo:
         gr.Markdown(
             "# KokoroTTS-HF community demo\n"
-            "Lightweight CPU demo. For the full UI + OpenAI-compatible API, "
-            "use the Docker Space flavour (see `docs/HF_SPACES.md`).\n\n"
+            "Full 70-voice catalogue on CPU. For the browser workspace + "
+            "OpenAI-compatible API, use the Docker Space flavour "
+            "(`docs/HF_SPACES.md`).\n\n"
+            f"{guard_line} Profile: `{summary['preload']}`.\n\n"
             "Based on Hangry Labs KokoroTTS (Apache-2.0) and hexgrad Kokoro."
         )
         with gr.Row():
-            text = gr.Textbox(
-                label="Text", value=DEFAULT_TEXT, lines=5, max_lines=12
-            )
+            text = gr.Textbox(label="Text", value=DEFAULT_TEXT, lines=5, max_lines=12)
         with gr.Row():
             voice = gr.Dropdown(
-                label="Voice", choices=STARTER_VOICES, value=DEFAULT_VOICE
+                label="Voice (70, grouped by language)",
+                choices=voice_choices(),
+                value=DEFAULT_VOICE,
             )
             speed = gr.Slider(
                 label="Speed", minimum=0.25, maximum=4.0, step=0.05, value=1.0

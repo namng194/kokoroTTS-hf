@@ -47,6 +47,7 @@ Kokoro-82M is small enough to run on a free CPU Space.
 - [Listen and Have a Look](#listen-and-have-a-look)
 - [Quick Start](#quick-start)
 - [Hugging Face Spaces](docs/HF_SPACES.md)
+- [Fork vision & roadmap](docs/VISION.md)
 - [API Usage](#api-usage)
   - [OpenAI-Compatible API](#openai-compatible-api)
   - [KokoroTTS Native API](#kokorotts-native-api)

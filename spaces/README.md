@@ -13,7 +13,9 @@ short_description: Lightweight CPU text-to-speech demo (Kokoro-82M community edi
 
 # KokoroTTS-HF (Gradio demo flavour)
 
-Lightweight free-CPU demo. Type text, pick a starter voice, press **Generate**.
+Full 70-voice demo on free CPU. Type text, pick any voice grouped by
+language, press **Generate**. Lean-boot and character-guard behaviour follow
+`KOKOROTTS_PRELOAD` / `KOKOROTTS_MAX_CHARS` (see `docs/HF_SPACES.md`).
 
 For the full product (browser workspace, OpenAI-compatible + native HTTP APIs,
 70 voices, streaming, GPU support), deploy the **Docker flavour** instead:

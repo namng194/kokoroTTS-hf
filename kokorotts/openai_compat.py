@@ -10,6 +10,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 
 from .schemas import OpenAISpeechRequest, TTSRequest
+from .space import check_text_length
 
 
 OPENAI_MODEL_ID = "kokoro"
@@ -153,6 +154,10 @@ def openai_tts_request(
             code="unsupported_parameter",
         )
     model_speed, tempo = openai_speed_controls(payload.speed)
+    try:
+        check_text_length(payload.input)
+    except ValueError as exc:
+        raise OpenAIAPIError(str(exc), param="input") from exc
     return TTSRequest(
         text=payload.input,
         voice=voice,
