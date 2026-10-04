@@ -24,10 +24,29 @@ Examples and voice previews: [hangry-labs.github.io/kokoroTTS/examples](https://
 
 Hangry Labs home: [nuggies.website](https://nuggies.website/).
 
+## Hugging Face Spaces (new in this community edition)
+
+This fork adds a lightweight **Hugging Face Spaces** deployment flavour:
+Kokoro-82M is small enough to run on a free CPU Space.
+
+- **Docker Space (recommended)** — full browser UI + OpenAI-compatible and
+  native HTTP APIs, CPU-optimized: [`Dockerfile.hf`](Dockerfile.hf)
+- **Gradio demo** — minimal free-CPU teaser: [`spaces/gradio_app.py`](spaces/gradio_app.py)
+- **Guide**: [`docs/HF_SPACES.md`](docs/HF_SPACES.md)
+- **Deploy helper**: `python scripts/deploy_hf_space.py --flavour docker --space-id YOU/kokorotts-hf`
+  (auth via `HF_TOKEN` env var — never commit tokens)
+
+> Community edition by [@namng194](https://github.com/namng194), based on the
+> Hangry Labs KokoroTTS fork (Apache-2.0) and the original
+> [hexgrad/Kokoro](https://github.com/hexgrad/kokoro). Upstream credits,
+> model/voice asset licenses, and local Docker GPU workflows are unchanged —
+> see [About This Fork](#about-this-fork) and [License](#license).
+
 ## Contents
 
 - [Listen and Have a Look](#listen-and-have-a-look)
 - [Quick Start](#quick-start)
+- [Hugging Face Spaces](docs/HF_SPACES.md)
 - [API Usage](#api-usage)
   - [OpenAI-Compatible API](#openai-compatible-api)
   - [KokoroTTS Native API](#kokorotts-native-api)

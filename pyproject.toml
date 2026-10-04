@@ -58,5 +58,6 @@ artifacts = [
 "assets/hangrylabs_logo_horizontal.webp" = "assets/hangrylabs_logo_horizontal.webp"
 
 [project.urls]
-Homepage = "https://github.com/Hangry-Labs/kokoroTTS"
-Repository = "https://github.com/Hangry-Labs/kokoroTTS"
+Homepage = "https://github.com/namng194/kokoroTTS-hf"
+Repository = "https://github.com/namng194/kokoroTTS-hf"
+Upstream = "https://github.com/Hangry-Labs/kokoroTTS"

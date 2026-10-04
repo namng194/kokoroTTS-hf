@@ -129,7 +129,14 @@ celerybeat.pid
 
 # Environments
 .env
+.env.*
+!.env.example
+.hf_token
+*_token.txt
+HfApi_token
 .venv
+
+# Spyder project settings
 env/
 venv/
 ENV/

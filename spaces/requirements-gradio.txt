@@ -1,0 +1,4 @@
+# Gradio-flavour requirements for the lightweight CPU demo Space.
+# Installs the CPU dependency set plus Gradio itself.
+-r ../requirements-hf.txt
+gradio==5.39.0

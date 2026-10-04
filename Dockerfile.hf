@@ -1,0 +1,78 @@
+# Hugging Face Spaces (Docker SDK) — CPU-optimized KokoroTTS image.
+#
+# Why a separate Dockerfile instead of reusing the root Dockerfile?
+# - Root Dockerfile targets CUDA (cu130) wheels + optionally baked model assets:
+#   great for local RTX GPUs, too large/heavy for free HF CPU Spaces.
+# - This file targets the free CPU tier: CPU-only torch, lazy model download
+#   (nothing baked), persistent cache under /data (the only durable path on
+#   Spaces), and the same FastAPI + browser UI on port 7860.
+#
+# Deploy: point a Docker-sdk Space at this repo, or use
+# scripts/deploy_hf_space.py which uploads exactly what the Space needs.
+# Local check (no GPU used, CPU only):
+#   docker build -f Dockerfile.hf -t kokorotts-hf:local .
+#   docker run -p 7860:7860 kokorotts-hf:local
+# Then open http://localhost:7860
+
+ARG PYOPENJTALK_VERSION=0.4.1
+ARG PYTHON_VERSION=3.13-slim
+
+FROM python:${PYTHON_VERSION} AS base
+
+ARG PYOPENJTALK_VERSION
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_ROOT_USER_ACTION=ignore \
+    # /data is the only persistent directory on HF Spaces.
+    HF_HOME=/data/hf-cache \
+    HUGGINGFACE_HUB_CACHE=/data/hf-cache \
+    KOKOROTTS_SETTINGS_PATH=/data/app/settings.json \
+    HF_HUB_OFFLINE=0 \
+    TRANSFORMERS_OFFLINE=0 \
+    KOKOROTTS_DEVICE=cpu \
+    KOKOROTTS_HF_SPACE=1 \
+    PORT=7860 \
+    HOST=0.0.0.0 \
+    UVICORN_RELOAD=0
+
+WORKDIR /app
+
+# espeak-ng: phonemization backend. ffmpeg: mp3/ogg/opus/aac encoding.
+# build-essential: compile pyopenjtalk (purged afterwards to keep the layer slim).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends build-essential espeak-ng ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements-hf.txt /app/requirements-hf.txt
+
+RUN python -m pip install --upgrade pip setuptools wheel \
+    && python -m pip install --no-deps "pyopenjtalk==${PYOPENJTALK_VERSION}" \
+    && python -m pip install --extra-index-url https://download.pytorch.org/whl/cpu -r /app/requirements-hf.txt \
+    && python -m pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl \
+    && apt-get purge -y --auto-remove build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY scripts/install_open_jtalk_dictionary.py /tmp/install_open_jtalk_dictionary.py
+
+RUN python /tmp/install_open_jtalk_dictionary.py \
+        --version "1.11" \
+        --url "https://github.com/r9y9/open_jtalk/releases/download/v1.11.1/open_jtalk_dic_utf_8-1.11.tar.gz" \
+        --sha256 "fe6ba0e43542cef98339abdffd903e062008ea170b04e7e2a35da805902f382a" \
+    && rm /tmp/install_open_jtalk_dictionary.py
+
+COPY pyproject.toml README.md LICENSE THIRD_PARTY_NOTICES.md VERSION /app/
+COPY kokorotts /app/kokorotts
+COPY assets/kokoro_favicon.webp assets/kokoro_logo_horizontal.webp /app/assets/
+
+RUN mkdir -p /data/hf-cache /data/app /app/persistent/app /app/persistent/models/huggingface \
+    && python -m pip install -e . --no-deps \
+    && python -m compileall -q kokorotts
+
+LABEL org.opencontainers.image.source="https://github.com/namng194/kokoroTTS-hf"
+LABEL org.opencontainers.image.description="KokoroTTS community edition with Hugging Face Spaces (CPU) support"
+
+EXPOSE 7860
+
+CMD ["python", "-u", "-m", "kokorotts.server"]

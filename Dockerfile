@@ -79,7 +79,7 @@ RUN python -u -m kokorotts.prefetch_assets
 
 FROM python:3.13-slim AS runtime-base
 
-LABEL org.opencontainers.image.source="https://github.com/Hangry-Labs/kokoroTTS"
+LABEL org.opencontainers.image.source="https://github.com/namng194/kokoroTTS-hf"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
