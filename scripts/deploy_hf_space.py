@@ -70,7 +70,8 @@ def build_staging(flavour: str, dest: Path) -> list[str]:
         src_dir = REPO_ROOT / dirname
         if not src_dir.is_dir():
             raise FileNotFoundError(f"Required directory missing: {dirname}/")
-        shutil.copytree(src_dir, dest / dirname)
+        shutil.copytree(src_dir, dest / dirname,
+                        ignore=shutil.ignore_patterns("__pycache__"))
         staged.append(dirname + "/")
     return staged
 
@@ -81,15 +82,28 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--space-id", required=True, help="e.g. YOU/kokorotts-hf")
     parser.add_argument("--token", default=os.getenv("HF_TOKEN"), help="defaults to $HF_TOKEN")
     parser.add_argument("--dry-run", action="store_true", help="stage files only, no upload")
+    parser.add_argument("--stage-dir", default="",
+                        help="copy staged Space files into this directory and keep them "
+                             "(for manual web drag-drop upload); implies no upload")
     parser.add_argument("--private", action="store_true", help="create a private Space")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv or sys.argv[1:])
-    if not args.token and not args.dry_run:
+    if not args.token and not args.dry_run and not args.stage_dir:
         print("error: set HF_TOKEN env var or pass --token (never commit it)", file=sys.stderr)
         return 2
+    if args.stage_dir:
+        dest = Path(args.stage_dir)
+        dest.mkdir(parents=True, exist_ok=True)
+        staged = build_staging(args.flavour, dest)
+        print(f"flavour: {args.flavour}")
+        print(f"staged {len(staged)} entries into {dest}:")
+        for entry in staged:
+            print(f"  - {entry}")
+        print("Upload this folder's contents to an empty Space via the web UI.")
+        return 0
     with tempfile.TemporaryDirectory(prefix="kokorotts-hf-space-") as tmp:
         dest = Path(tmp)
         staged = build_staging(args.flavour, dest)

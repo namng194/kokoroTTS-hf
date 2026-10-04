@@ -126,6 +126,20 @@ class TestDeployHelper(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertIn("app.py", proc.stdout)
 
+    def test_stage_dir_needs_no_token(self):
+        import os
+        import tempfile
+        env = {k: v for k, v in os.environ.items() if k != "HF_TOKEN"}
+        with tempfile.TemporaryDirectory() as tmp:
+            proc = subprocess.run(
+                [sys.executable, "scripts/deploy_hf_space.py",
+                 "--flavour", "gradio", "--space-id", "local/kokorotts-hf",
+                 "--stage-dir", os.path.join(tmp, "space")],
+                cwd=REPO_ROOT, capture_output=True, text=True, timeout=120, env=env,
+            )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("app.py", proc.stdout)
+
     def test_rejects_missing_token_without_dry_run(self):
         env = {k: v for k, v in __import__("os").environ.items() if k != "HF_TOKEN"}
         proc = subprocess.run(
