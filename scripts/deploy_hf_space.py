@@ -52,6 +52,23 @@ GRADIO_FILES = [
 ]
 GRADIO_DIRS = ["kokorotts"]
 
+# spaces/requirements-gradio.txt references ../requirements-hf.txt, which
+# breaks once staged flat at the Space root. Flatten it at stage time.
+GRADIO_PIN_FILE = "spaces/requirements-gradio.txt"
+HF_REQUIREMENTS_FILE = "requirements-hf.txt"
+
+
+def flatten_gradio_requirements() -> str:
+    lines: list[str] = []
+    for raw in (REPO_ROOT / HF_REQUIREMENTS_FILE).read_text(encoding="utf-8").splitlines():
+        if raw.strip() and not raw.strip().startswith("-r "):
+            lines.append(raw)
+    for raw in (REPO_ROOT / GRADIO_PIN_FILE).read_text(encoding="utf-8").splitlines():
+        stripped = raw.strip()
+        if stripped and not stripped.startswith(("-r ", "#")):
+            lines.append(stripped)
+    return "\n".join(lines) + "\n"
+
 # Static gallery: examples/ page flattened to the Space root (index.html
 # must sit at root) plus the two small assets it references relatively.
 STATIC_README = ("spaces/README-static.md", "README.md")
@@ -98,6 +115,10 @@ def build_staging(flavour: str, dest: Path) -> list[str]:
         shutil.copytree(src_dir, dest / dirname,
                         ignore=shutil.ignore_patterns("__pycache__"))
         staged.append(dirname + "/")
+    if flavour == "gradio":
+        (dest / "requirements.txt").write_text(
+            flatten_gradio_requirements(), encoding="utf-8"
+        )
     return staged
 
 
@@ -111,6 +132,9 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
                         help="copy staged Space files into this directory and keep them "
                              "(for manual web drag-drop upload); implies no upload")
     parser.add_argument("--private", action="store_true", help="create a private Space")
+    parser.add_argument("--hardware", default="",
+                        help="Space hardware, e.g. zero-a10g (free serverless GPU) "
+                             "or cpu-basic. Empty keeps the account default.")
     return parser.parse_args(argv)
 
 
@@ -154,6 +178,7 @@ def main(argv: list[str] | None = None) -> int:
         api.create_repo(
             repo_id=args.space_id, repo_type="space", space_sdk=args.flavour,
             private=args.private, exist_ok=True,
+            **({"space_hardware": args.hardware} if args.hardware else {}),
         )
         api.upload_folder(
             repo_id=args.space_id, repo_type="space", folder_path=str(dest),

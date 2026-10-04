@@ -98,7 +98,8 @@ class TestGradioApp(unittest.TestCase):
     def test_space_frontmatter(self):
         readme = read("spaces/README.md")
         self.assertIn("sdk: gradio", readme)
-        self.assertIn("app_file:", readme)
+        # Must match the staged filename (deploy uploads gradio_app.py as app.py).
+        self.assertIn("app_file: app.py", readme)
         docker_readme = read("spaces/README-docker.md")
         self.assertIn("sdk: docker", docker_readme)
         self.assertIn("app_port: 7860", docker_readme)
