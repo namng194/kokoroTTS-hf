@@ -6,10 +6,17 @@ import json
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, BinaryIO, Self
+from typing import Any, BinaryIO
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
+
+import sys
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:  # Spaces builder still runs Python 3.10; typing.Self needs 3.11+.
+    from typing_extensions import Self
 
 
 class KokoroTTSClientError(RuntimeError):

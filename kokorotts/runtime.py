@@ -8,7 +8,12 @@ import os
 from collections.abc import Callable, Iterator
 from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
+
+try:
+    from datetime import UTC
+except ImportError:  # Python 3.10 (Spaces builder); UTC alias needs 3.11+.
+    UTC = timezone.utc
 from threading import Condition, RLock
 
 import numpy as np
