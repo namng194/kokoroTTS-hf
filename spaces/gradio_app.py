@@ -22,6 +22,8 @@ from __future__ import annotations
 import os
 import threading
 
+import spaces
+
 from kokorotts.catalog import LANGUAGE_CHOICES, voice_ids, voice_label, voice_language
 from kokorotts.space import (
     build_runtime_kwargs,
@@ -69,6 +71,16 @@ def get_runtime():
         return _runtime
 
 
+def _inference_device() -> str:
+    try:
+        import torch
+
+        return "cuda:0" if torch.cuda.is_available() else "cpu"
+    except ImportError:
+        return "cpu"
+
+
+@spaces.GPU(duration=120)
 def generate(text: str, voice: str, speed: float):
     try:
         text = check_text_length(text)
@@ -79,7 +91,8 @@ def generate(text: str, voice: str, speed: float):
     speed = max(0.25, min(4.0, float(speed or 1.0)))
     runtime = get_runtime()
     result = runtime.synthesize(
-        text=text, voice=voice, speed=speed, device="cpu", input_type="text"
+        text=text, voice=voice, speed=speed,
+        device=_inference_device(), input_type="text",
     )
     if result is None:
         raise RuntimeError("Synthesis returned no audio.")

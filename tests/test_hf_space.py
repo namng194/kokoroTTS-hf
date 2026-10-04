@@ -94,6 +94,9 @@ class TestGradioApp(unittest.TestCase):
         self.assertIn("def generate", src)
         self.assertIn("def get_runtime", src)
         self.assertIn("voice_choices", src)
+        # ZeroGPU rejects spaces without a @spaces.GPU function at startup.
+        self.assertIn("import spaces", src)
+        self.assertIn("@spaces.GPU", src)
 
     def test_space_frontmatter(self):
         readme = read("spaces/README.md")
@@ -161,6 +164,24 @@ class TestDeployHelper(unittest.TestCase):
             )
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertIn("app.py", proc.stdout)
+
+    def test_cuda_flatten_uses_cu130_torch(self):
+        import os
+        with tempfile.TemporaryDirectory() as tmp:
+            staged = os.path.join(tmp, "space")
+            proc = subprocess.run(
+                [sys.executable, "scripts/deploy_hf_space.py",
+                 "--flavour", "gradio", "--space-id", "local/x",
+                 "--torch", "cuda", "--stage-dir", staged],
+                cwd=REPO_ROOT, capture_output=True, text=True, timeout=120,
+            )
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            from pathlib import Path
+            reqs = (Path(staged) / "requirements.txt").read_text(encoding="utf-8")
+        self.assertIn("torch==2.11.0+cu130", reqs)
+        self.assertIn("download.pytorch.org/whl/cu130", reqs)
+        self.assertNotIn("download.pytorch.org/whl/cpu", reqs)
+        self.assertIn("spaces==0.51.3", reqs)
 
     def test_rejects_missing_token_without_dry_run(self):
         env = {k: v for k, v in __import__("os").environ.items() if k != "HF_TOKEN"}

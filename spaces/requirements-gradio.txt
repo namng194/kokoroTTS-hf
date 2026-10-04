@@ -2,3 +2,4 @@
 # Installs the CPU dependency set plus Gradio itself.
 -r ../requirements-hf.txt
 gradio==5.39.0
+spaces==0.51.3

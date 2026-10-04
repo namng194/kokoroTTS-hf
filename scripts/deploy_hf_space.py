@@ -55,20 +55,61 @@ GRADIO_DIRS = ["kokorotts"]
 
 # spaces/requirements-gradio.txt references ../requirements-hf.txt, which
 # breaks once staged flat at the Space root. Flatten it at stage time.
+# torch_variant="cpu" (default, Dockerfile.hf parity) or "cuda" (ZeroGPU
+# GPU inference: cu130 torch + the nvidia/cuda/triton stack from the GPU
+# requirements.txt, keeping the gradio-compat holds).
 GRADIO_PIN_FILE = "spaces/requirements-gradio.txt"
 HF_REQUIREMENTS_FILE = "requirements-hf.txt"
+GPU_REQUIREMENTS_FILE = "requirements.txt"
+CUDA_STACK_PREFIXES = ("nvidia-", "cuda-", "triton==")
+CUDA_INDEX = "--extra-index-url https://download.pytorch.org/whl/cu130"
 
 
-def flatten_gradio_requirements() -> str:
-    lines: list[str] = []
-    for raw in (REPO_ROOT / HF_REQUIREMENTS_FILE).read_text(encoding="utf-8").splitlines():
-        if raw.strip() and not raw.strip().startswith("-r "):
-            lines.append(raw)
+def split_requirement_lines(path: str) -> tuple[list[str], list[str]]:
+    """Returns (index_lines, package_lines) preserving index URLs."""
+    index_lines: list[str] = []
+    package_lines: list[str] = []
+    for raw in (REPO_ROOT / path).read_text(encoding="utf-8").splitlines():
+        stripped = raw.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if stripped.startswith("--"):
+            index_lines.append(stripped)
+        elif not stripped.startswith("-r "):
+            package_lines.append(stripped)
+    return index_lines, package_lines
+
+
+def flatten_gradio_requirements(torch_variant: str = "cpu") -> str:
+    if torch_variant not in ("cpu", "cuda"):
+        raise ValueError("torch_variant must be 'cpu' or 'cuda'")
+    index_lines, lines = split_requirement_lines(HF_REQUIREMENTS_FILE)
+    if torch_variant == "cuda":
+        # CUDA torch lives on a different index; drop the CPU index so pip
+        # never mixes CUDA/CPU wheels.
+        index_lines = []
+    if torch_variant == "cuda":
+        _, gpu_lines = split_requirement_lines(GPU_REQUIREMENTS_FILE)
+        cuda_stack = [
+            line for line in gpu_lines
+            if line.startswith(CUDA_STACK_PREFIXES)
+        ]
+        cuda_torch = next(
+            line for line in gpu_lines
+            if line.startswith("torch==") and "+cu" in line
+        )
+        lines = [
+            line for line in lines
+            if not line.startswith("torch==")
+        ]
+        lines.append(cuda_torch)
+        lines.extend(cuda_stack)
+        index_lines.append(CUDA_INDEX)
     for raw in (REPO_ROOT / GRADIO_PIN_FILE).read_text(encoding="utf-8").splitlines():
         stripped = raw.strip()
         if stripped and not stripped.startswith(("-r ", "#")):
             lines.append(stripped)
-    return "\n".join(lines) + "\n"
+    return "\n".join(index_lines + lines) + "\n"
 
 # Static gallery: examples/ page flattened to the Space root (index.html
 # must sit at root) plus the two small assets it references relatively.
@@ -94,7 +135,7 @@ def build_staging_static(dest: Path) -> list[str]:
     return staged
 
 
-def build_staging(flavour: str, dest: Path) -> list[str]:
+def build_staging(flavour: str, dest: Path, torch_variant: str = "cpu") -> list[str]:
     files = DOCKER_FILES if flavour == "docker" else GRADIO_FILES
     dirs = DOCKER_DIRS if flavour == "docker" else GRADIO_DIRS
     staged: list[str] = []
@@ -118,7 +159,7 @@ def build_staging(flavour: str, dest: Path) -> list[str]:
         staged.append(dirname + "/")
     if flavour == "gradio":
         (dest / "requirements.txt").write_text(
-            flatten_gradio_requirements(), encoding="utf-8"
+            flatten_gradio_requirements(torch_variant), encoding="utf-8"
         )
     return staged
 
@@ -136,6 +177,9 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--hardware", default="",
                         help="Space hardware, e.g. zero-a10g (free serverless GPU) "
                              "or cpu-basic. Empty keeps the account default.")
+    parser.add_argument("--torch", choices=["cpu", "cuda"], default="cpu",
+                        help="torch build for the gradio bundle: cpu (default) or "
+                             "cuda (required for @spaces.GPU on ZeroGPU)")
     return parser.parse_args(argv)
 
 
@@ -150,7 +194,7 @@ def main(argv: list[str] | None = None) -> int:
         staged = (
             build_staging_static(dest)
             if args.flavour == "static"
-            else build_staging(args.flavour, dest)
+            else build_staging(args.flavour, dest, args.torch)
         )
         print(f"flavour: {args.flavour}")
         print(f"staged {len(staged)} entries into {dest}:")
@@ -163,7 +207,7 @@ def main(argv: list[str] | None = None) -> int:
         staged = (
             build_staging_static(dest)
             if args.flavour == "static"
-            else build_staging(args.flavour, dest)
+            else build_staging(args.flavour, dest, args.torch)
         )
         print(f"flavour: {args.flavour}")
         print(f"space:   {args.space_id}")
