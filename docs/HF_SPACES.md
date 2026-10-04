@@ -1,11 +1,35 @@
 # Deploying KokoroTTS-HF on Hugging Face Spaces
 
-Two supported flavours. Pick one:
+Live now (free tier, static gallery, no backend):
+**https://nam194-kokorotts-hf.static.hf.space/** — all 70 voices playable,
+deployed from this repo with `scripts/deploy_hf_space.py --flavour static`.
+
+> Pricing reality (Oct 2026): Gradio/Docker Spaces on hosted CPU now require
+> a PRO subscription (creation fails with 402 otherwise). Static Spaces stay
+> free, so the gallery is the always-on public front; the Docker/Gradio
+> flavours below are ready for PRO workspaces and self-hosting.
+
+Three supported flavours. Pick one:
 
 | Flavour | SDK | Best for | Cold start | RAM (typical) |
 |---|---|---|---|---|
-| **Docker** (recommended) | `docker` | Full product: browser workspace + OpenAI-compatible + native APIs, streaming, 70 voices | ~1–3 min first pull/build | ~2–4 GB |
-| **Gradio demo** | `gradio` | One-click free-CPU demo, smallest footprint | ~30–60 s + model download | ~1–2 GB |
+| **Static gallery** (live, free) | `static` | Public voice previews, zero backend cost | instant | ~0 |
+| **Docker** (needs PRO hosted) | `docker` | Full product: browser workspace + OpenAI-compatible + native APIs, streaming, 70 voices | ~1–3 min first pull/build | ~2–4 GB |
+| **Gradio demo** (needs PRO hosted) | `gradio` | One-click CPU demo, smallest dynamic footprint | ~30–60 s + model download | ~1–2 GB |
+
+## Option 0 — Static gallery Space (free, live)
+
+No backend, no PRO needed. Serves the `examples/` voice gallery page:
+
+```bash
+export HF_TOKEN="hf_..."   # any write token; static hosting is free
+python scripts/deploy_hf_space.py --flavour static --space-id YOU/kokoroTTS-hf
+```
+
+This stages `examples/index.html` at the Space root plus its JS, all voice
+MP3s, and the two small referenced assets — then creates/uploads the Space.
+Note the serving subdomain for static Spaces ends in
+`.static.hf.space`, e.g. `https://YOU-kokorotts-hf.static.hf.space/`.
 
 Both are CPU-first so they run on the free tier. Kokoro-82M (~82M params) is
 lightweight by TTS standards: CPU inference works, GPU just makes it faster.

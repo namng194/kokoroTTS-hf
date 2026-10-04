@@ -11,7 +11,10 @@ does not try to out-do upstream at its own game:
 
 1. **Hugging Face Spaces flavours** — `Dockerfile.hf` (Docker SDK, full
    UI + APIs on CPU) and `spaces/gradio_app.py` (Gradio SDK, full 70-voice
-   demo). Guide: `docs/HF_SPACES.md`. Deploy: `scripts/deploy_hf_space.py`.
+   demo), plus a **live free-tier static voice gallery**
+   ([nam194-kokorotts-hf.static.hf.space](https://nam194-kokorotts-hf.static.hf.space/))
+   since hosted Gradio/Docker Spaces currently need PRO.
+   Guide: `docs/HF_SPACES.md`. Deploy: `scripts/deploy_hf_space.py`.
 2. **Constrained-host profiles** (`kokorotts/space.py`, wired into `api.py`
    and `openai_compat.py`):
    - `KOKOROTTS_PRELOAD=all|standard|lazy` — lean the boot; default `all`

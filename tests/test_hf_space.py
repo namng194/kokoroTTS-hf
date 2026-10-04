@@ -103,6 +103,25 @@ class TestGradioApp(unittest.TestCase):
         self.assertIn("sdk: docker", docker_readme)
         self.assertIn("app_port: 7860", docker_readme)
 
+    def test_space_frontmatter_valid_per_hf_rules(self):
+        import re
+        allowed_colors = {
+            "red", "yellow", "green", "blue", "indigo", "purple", "pink", "gray",
+        }
+        for name in ("spaces/README.md", "spaces/README-docker.md",
+                     "spaces/README-static.md"):
+            frontmatter = read(name).split("---")[1]
+            color = re.search(r"^colorFrom:\s*(\S+)", frontmatter, re.M).group(1)
+            self.assertIn(color, allowed_colors, f"{name}: bad colorFrom")
+            desc = re.search(r"^short_description:\s*(.+)$", frontmatter, re.M).group(1)
+            self.assertLessEqual(len(desc), 60, f"{name}: short_description too long")
+            if "gradio" in name and "static" not in name:
+                self.assertIn("sdk: gradio", frontmatter)
+            if "docker" in name:
+                self.assertIn("sdk: docker", frontmatter)
+            if "static" in name:
+                self.assertIn("sdk: static", frontmatter)
+
 
 class TestDeployHelper(unittest.TestCase):
     def test_dry_run_docker(self):

@@ -1,14 +1,14 @@
 ---
 title: KokoroTTS-HF Gradio Demo
 emoji: 🔊
-colorFrom: violet
+colorFrom: purple
 colorTo: indigo
 sdk: gradio
 sdk_version: 5.39.0
 app_file: gradio_app.py
 pinned: false
 license: apache-2.0
-short_description: Lightweight CPU text-to-speech demo (Kokoro-82M community edition)
+short_description: 70-voice CPU TTS demo (Kokoro community edition)
 ---
 
 # KokoroTTS-HF (Gradio demo flavour)

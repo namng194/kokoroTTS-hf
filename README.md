@@ -29,7 +29,11 @@ Hangry Labs home: [nuggies.website](https://nuggies.website/).
 This fork adds a lightweight **Hugging Face Spaces** deployment flavour:
 Kokoro-82M is small enough to run on a free CPU Space.
 
-- **Docker Space (recommended)** — full browser UI + OpenAI-compatible and
+- **Live voice gallery (free tier, no backend)**:
+  [nam194-kokorotts-hf.static.hf.space](https://nam194-kokorotts-hf.static.hf.space/)
+  — all 70 voices playable in the browser, deployed from this repo via
+  `python scripts/deploy_hf_space.py --flavour static`
+- **Docker Space (recommended, needs PRO for hosted CPU)** — full browser UI + OpenAI-compatible and
   native HTTP APIs, CPU-optimized: [`Dockerfile.hf`](Dockerfile.hf)
 - **Gradio demo** — minimal free-CPU teaser: [`spaces/gradio_app.py`](spaces/gradio_app.py)
 - **Guide**: [`docs/HF_SPACES.md`](docs/HF_SPACES.md)

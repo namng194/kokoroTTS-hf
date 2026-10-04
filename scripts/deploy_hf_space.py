@@ -5,6 +5,8 @@ Flavours:
   docker  - full product (browser UI + OpenAI/native APIs), CPU-optimized.
             Uploads Dockerfile.hf as Dockerfile + runtime files.
   gradio  - lightweight free-CPU demo (spaces/gradio_app.py).
+  static  - free-tier voice gallery (examples/ page + mp3s, no backend).
+            The only flavour that works without a PRO subscription.
 
 Auth: read from HF_TOKEN env var (or --token, never commit it).
 The bundled HF token in the original request is treated as compromised the
@@ -50,6 +52,29 @@ GRADIO_FILES = [
 ]
 GRADIO_DIRS = ["kokorotts"]
 
+# Static gallery: examples/ page flattened to the Space root (index.html
+# must sit at root) plus the two small assets it references relatively.
+STATIC_README = ("spaces/README-static.md", "README.md")
+STATIC_ASSETS = ["favicon_small.png", "logo_small.png"]
+
+
+def build_staging_static(dest: Path) -> list[str]:
+    staged: list[str] = []
+    src, name = STATIC_README
+    shutil.copy2(REPO_ROOT / src, dest / name)
+    staged.append(name)
+    examples = REPO_ROOT / "examples"
+    for item in sorted(examples.iterdir()):
+        if item.is_file():
+            shutil.copy2(item, dest / item.name)
+            staged.append(item.name)
+    assets_dir = dest / "assets"
+    assets_dir.mkdir(exist_ok=True)
+    for asset in STATIC_ASSETS:
+        shutil.copy2(REPO_ROOT / "assets" / asset, assets_dir / asset)
+        staged.append(f"assets/{asset}")
+    return staged
+
 
 def build_staging(flavour: str, dest: Path) -> list[str]:
     files = DOCKER_FILES if flavour == "docker" else GRADIO_FILES
@@ -78,7 +103,7 @@ def build_staging(flavour: str, dest: Path) -> list[str]:
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Deploy KokoroTTS-HF to HF Spaces.")
-    parser.add_argument("--flavour", choices=["docker", "gradio"], default="docker")
+    parser.add_argument("--flavour", choices=["docker", "gradio", "static"], default="docker")
     parser.add_argument("--space-id", required=True, help="e.g. YOU/kokorotts-hf")
     parser.add_argument("--token", default=os.getenv("HF_TOKEN"), help="defaults to $HF_TOKEN")
     parser.add_argument("--dry-run", action="store_true", help="stage files only, no upload")
@@ -97,7 +122,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.stage_dir:
         dest = Path(args.stage_dir)
         dest.mkdir(parents=True, exist_ok=True)
-        staged = build_staging(args.flavour, dest)
+        staged = (
+            build_staging_static(dest)
+            if args.flavour == "static"
+            else build_staging(args.flavour, dest)
+        )
         print(f"flavour: {args.flavour}")
         print(f"staged {len(staged)} entries into {dest}:")
         for entry in staged:
@@ -106,7 +135,11 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     with tempfile.TemporaryDirectory(prefix="kokorotts-hf-space-") as tmp:
         dest = Path(tmp)
-        staged = build_staging(args.flavour, dest)
+        staged = (
+            build_staging_static(dest)
+            if args.flavour == "static"
+            else build_staging(args.flavour, dest)
+        )
         print(f"flavour: {args.flavour}")
         print(f"space:   {args.space_id}")
         print(f"staged {len(staged)} entries:")

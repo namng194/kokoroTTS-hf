@@ -1,13 +1,13 @@
 ---
 title: KokoroTTS-HF
 emoji: 🔊
-colorFrom: violet
+colorFrom: purple
 colorTo: indigo
 sdk: docker
 app_port: 7860
 pinned: false
 license: apache-2.0
-short_description: Kokoro TTS community edition — browser UI + OpenAI-compatible API (CPU)
+short_description: KokoroTTS UI + OpenAI-compatible API (CPU Space)
 ---
 
 # KokoroTTS-HF (Docker flavour)
