@@ -61,7 +61,15 @@ class TestGalleryBranding(unittest.TestCase):
         content = read("examples/index.html")
         self.assertIn(OUR_REPO, content)
         self.assertIn("kokorotts_hf_logo.svg", content)
-        self.assertIn("kokoroTTS-hf-live", content)
+        self.assertIn("studio.html", content)
+
+    def test_studio_page_is_ours_and_live(self):
+        content = read("examples/studio.html")
+        self.assertNotIn("nuggies.website", content)
+        self.assertNotIn("Hangry", content)
+        self.assertIn("kokoro-js", content)
+        self.assertIn("KokoroTTS-HF", content)
+        self.assertIn("kokorotts_hf_favicon.svg", content)
 
     def test_live_demo_key_translated_everywhere(self):
         content = read("examples/player.js")

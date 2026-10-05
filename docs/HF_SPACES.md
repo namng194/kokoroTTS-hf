@@ -4,20 +4,18 @@ Live now (free tier, static gallery, no backend):
 **https://nam194-kokorotts-hf.static.hf.space/** — all 70 voices playable,
 deployed from this repo with `scripts/deploy_hf_space.py --flavour static`.
 
-Live now (free ZeroGPU, real inference):
-**https://huggingface.co/spaces/nam194/kokoroTTS-hf-live** — full 70-voice
-Gradio demo with GPU inference (`@spaces.GPU`, CUDA torch), verified
-end-to-end (text → 24 kHz WAV). Deploy your own copy:
+Live now (free, real inference, no server):
+**https://nam194-kokorotts-hf.static.hf.space/studio.html** — KokoroTTS-HF
+Studio runs Kokoro-82M 100% in the visitor's browser (kokoro-js q8,
+WebGPU/WASM, verified end-to-end in Node against the same model). No quota,
+no uploads, offline after the ~90MB first download. English voices fully
+supported in-browser.
 
-```bash
-python scripts/deploy_hf_space.py --flavour gradio \
-  --space-id YOU/kokoroTTS-hf-live --hardware zero-a10g --torch cuda
-```
-
-Free ZeroGPU quota is limited (daily, shared by all your spaces): keep test
-utterances short and prefer `--torch cuda` only where `@spaces.GPU` runs.
-The demo exposes both **Single** and **Blend** modes; Blend calls the
-`POST /tts/blend` endpoint below.
+> Server-GPU Spaces were retired from this project's free-tier strategy:
+> free ZeroGPU quota (≈5 min/day) cannot sustain a public demo, and hosted
+> CPU Gradio/Docker Spaces need PRO. The Gradio (`--flavour gradio`) and
+> Docker (`Dockerfile.hf`) flavours below remain ready for PRO workspaces
+> and self-hosting (CPU inference verified locally: 0 MB VRAM).
 
 ### Voice blending (KokoroTTS-HF exclusive)
 
@@ -25,7 +23,7 @@ Mix two same-family voices into a new synthetic speaker. `blend` is the
 weight of `voice_b` (`0.0` = pure `voice`, `1.0` = pure `voice_b`):
 
 ```bash
-curl -X POST "https://YOU-kokorotts-hf-live.hf.space/tts/blend" \
+curl -X POST "http://localhost:7860/tts/blend" \
   -H "Content-Type: application/json" \
   -d '{"text":"Two voices become one.","voice":"af_heart","voice_b":"af_bella","blend":0.5}' \
   -o blend.wav

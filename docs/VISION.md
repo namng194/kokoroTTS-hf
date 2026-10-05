@@ -9,14 +9,12 @@ does not try to out-do upstream at its own game:
 
 ## Shipped (this fork's own contributions)
 
-1. **Hugging Face Spaces flavours** — `Dockerfile.hf` (Docker SDK, full
-   UI + APIs on CPU) and `spaces/gradio_app.py` (Gradio SDK, full 70-voice
-   demo), plus a **live free-tier static voice gallery**
-   ([nam194-kokorotts-hf.static.hf.space](https://nam194-kokorotts-hf.static.hf.space/))
-   and a **live free ZeroGPU inference Space**
-   ([nam194/kokoroTTS-hf-live](https://huggingface.co/spaces/nam194/kokoroTTS-hf-live),
-   `@spaces.GPU` + CUDA torch, verified text → 24 kHz WAV end-to-end).
-   Guide: `docs/HF_SPACES.md`. Deploy: `scripts/deploy_hf_space.py`.
+1. **Hugging Face Spaces, Space-only** — a live free-tier static gallery
+   plus **KokoroTTS-HF Studio**: real Kokoro-82M inference 100% in the
+   visitor's browser (kokoro-js, WebGPU/WASM, no server, no quota).
+   Server-GPU Spaces were retired: free ZeroGPU quota (≈5 min/day) cannot
+   sustain a public demo. Guide: `docs/HF_SPACES.md`.
+   Deploy: `scripts/deploy_hf_space.py`.
 2. **Constrained-host profiles** (`kokorotts/space.py`, wired into `api.py`
    and `openai_compat.py`):
    - `KOKOROTTS_PRELOAD=all|standard|lazy` — lean the boot; default `all`

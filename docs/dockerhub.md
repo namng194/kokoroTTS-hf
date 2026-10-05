@@ -12,9 +12,9 @@ This community edition builds on the Hangry Labs KokoroTTS fork (Apache-2.0) and
 
 ## Listen First
 
-Live inference (type text, get speech):
+Live inference (in your browser, no server):
 
-https://huggingface.co/spaces/nam194/kokoroTTS-hf-live
+https://nam194-kokorotts-hf.static.hf.space/studio.html
 
 Voice gallery (hear every voice, no backend):
 
@@ -24,7 +24,7 @@ https://nam194-kokorotts-hf.static.hf.space/
 
 - GitHub repository: https://github.com/namng194/kokoroTTS-hf
 - Issues and support: https://github.com/namng194/kokoroTTS-hf/issues
-- Live inference Space: https://huggingface.co/spaces/nam194/kokoroTTS-hf-live
+- Browser studio: https://nam194-kokorotts-hf.static.hf.space/studio.html
 - Upstream project: https://github.com/Hangry-Labs/kokoroTTS
 
 ## Quick Start

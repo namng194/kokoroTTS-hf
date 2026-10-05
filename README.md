@@ -13,8 +13,8 @@ environment wrestling.
 
 **Try it right now, no install:**
 
-- 🔊 [Live inference — type text, get speech](https://huggingface.co/spaces/nam194/kokoroTTS-hf-live)
-  (free ZeroGPU, 70 voices)
+- 🔊 [Live inference — speak in your browser](https://nam194-kokorotts-hf.static.hf.space/studio.html)
+  (real Kokoro-82M on your device via WebGPU/WASM, no server, no quota)
 - 🎧 [Voice gallery — hear every voice](https://nam194-kokorotts-hf.static.hf.space/)
   (free static page, no backend)
 
@@ -83,10 +83,10 @@ compare speakers, and listen directly in the browser:
 **[Open the KokoroTTS-HF voice gallery](https://nam194-kokorotts-hf.static.hf.space/)**
 
 Want to synthesize your own text instead of samples?
-**[Open the live inference Space](https://huggingface.co/spaces/nam194/kokoroTTS-hf-live)**.
+**[Open KokoroTTS-HF Studio — in-browser inference](https://nam194-kokorotts-hf.static.hf.space/studio.html)**.
 
 The included interface provides generation and streaming workflows, precise voice controls, waveform playback and downloads, live API information, and runtime/GPU monitoring —
-[try it live](https://huggingface.co/spaces/nam194/kokoroTTS-hf-live) or run it locally below.
+[try it in your browser](https://nam194-kokorotts-hf.static.hf.space/studio.html) or run it locally below.
 
 ---
 
