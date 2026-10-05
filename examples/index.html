@@ -97,6 +97,8 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;bac
 #go{width:100%;margin-top:24px;padding:15px;font-size:16.5px}
 .progress{height:6px;border-radius:99px;background:#1b2330;margin-top:16px;overflow:hidden;display:none}
 .progress>div{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),#ff9b45);transition:width .15s}
+.progress.busy>div{width:32%!important;animation:probeslide 1.1s ease-in-out infinite}
+@keyframes probeslide{0%{margin-left:-32%}100%{margin-left:100%}}
 .status{min-height:24px;margin-top:12px;font-size:14px;color:#c7cfd9;line-height:1.6}
 audio.studio{width:100%;margin-top:14px;display:none}
 .dlrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
@@ -256,15 +258,21 @@ const T = () => (window.KokoroLang === "en"
   ? { ready: "Ready — pick a voice and press Generate.", needText: "Please enter some text first.",
       loading: "Model still loading — playing its sample meanwhile.", noEngine: "Engine failed to load. Check network/adblock — samples still play.",
       synth: "Synthesizing on your CPU…", done: "Done on your CPU — ", viaBe: " via CPU backend", mixA: "Mix 1/2 — rendering ", mixB: "Mix 2/2 — rendering ",
-      fail: "Synthesis failed: ", gen: "Generate speech", play: "Play sample", load: "Loading model (CPU)…",
+      fail: "Synthesis failed: ", gen: "Generate speech", play: "Play sample", viaGen: "Generate via CPU backend",
+      load: "Loading model (CPU)…",
       dlOnce: "Downloading Kokoro-82M q8/wasm (CPU) — once, then cached…", sampleOf: "Sample-only voice — playing its studio sample.",
-      beLive: " voice renders LIVE via your CPU backend.", pick2: "Pick two different voices to mix." }
+      beLive: " voice renders LIVE via your CPU backend.", pick2: "Pick two different voices to mix.",
+      enFam: "Backend is fetching voice models (first time takes minutes)…",
+      beOk: "Backend OK — serving ", voicesU: " voices.", beBad: "Backend unreachable: " }
   : { ready: "Sẵn sàng — chọn giọng rồi bấm Tạo tiếng.", needText: "Hãy nhập văn bản trước.",
       loading: "Model đang tải — phát mẫu của giọng này trước nhé.", noEngine: "Không tải được engine. Kiểm tra mạng/adblock — mẫu vẫn nghe được.",
       synth: "Đang tổng hợp trên CPU của bạn…", done: "Xong trên CPU của bạn — ", viaBe: " qua backend CPU", mixA: "Pha 1/2 — dựng ", mixB: "Pha 2/2 — dựng ",
-      fail: "Lỗi tổng hợp: ", gen: "Tạo tiếng", play: "Nghe mẫu", load: "Đang tải model (CPU)…",
+      fail: "Lỗi tổng hợp: ", gen: "Tạo tiếng", play: "Nghe mẫu", viaGen: "Tạo qua backend CPU",
+      load: "Đang tải model (CPU)…",
       dlOnce: "Đang tải Kokoro-82M q8/wasm (CPU) — 1 lần rồi cache…", sampleOf: "Giọng mẫu — đang phát bản studio có sẵn.",
-      beLive: " giọng này chạy LIVE qua backend CPU của bạn.", pick2: "Hãy chọn 2 giọng khác nhau để pha." });
+      beLive: " giọng này chạy LIVE qua backend CPU của bạn.", pick2: "Hãy chọn 2 giọng khác nhau để pha.",
+      enFam: "Backend đang tải model giọng (lần đầu mất vài phút)…",
+      beOk: "Backend OK — phục vụ ", voicesU: " giọng.", beBad: "Không nối được backend: " });
 
 let KokoroTTS = null, tts = null, actx = null, mode = "single";
 const textEl=$("stText"), vA=$("vA"), vB=$("vB"), vBW=$("vBWrap"), mixRow=$("mixRow"),
@@ -279,18 +287,27 @@ window.addEventListener("error", (ev) => {
   const el = $("st"); if (el) el.textContent = "Lỗi trang: " + ((ev && ev.message) || "?") + " — các mẫu bên dưới vẫn nghe được.";
 });
 const say = (m) => { st.textContent = m; };
-const pset = (p) => { prog.style.display="block"; bar.style.width = Math.round(Math.max(0,Math.min(1,p))*100)+"%"; };
-const phide = () => { prog.style.display="none"; bar.style.width="0%"; };
+const pset = (p) => { prog.classList.remove("busy"); prog.style.display="block"; bar.style.width = Math.round(Math.max(0,Math.min(1,p))*100)+"%"; };
+const busyOn = () => { prog.classList.add("busy"); prog.style.display="block"; };
+const phide = () => { prog.classList.remove("busy"); prog.style.display="none"; bar.style.width="0%"; };
 const updCount = () => { cnt.textContent = (textEl.value||"").length + " / 2000"; };
 textEl.addEventListener("input", updCount); updCount();
 spd.addEventListener("input", () => { spdV.textContent = Number(spd.value).toFixed(2); });
 mix.addEventListener("input", () => { mixV.textContent = Number(mix.value).toFixed(2); });
 pre.addEventListener("change", () => { textEl.value = pre.value; updCount(); });
-$("beSave").addEventListener("click", () => {
+$("beSave").addEventListener("click", async () => {
+  const t = T(), h = beUrl.value.trim().replace(/\/+$/,"");
   localStorage.setItem("kokorotts_hf_backend", beUrl.value.trim());
-  const tr = window.KokoroTr || ((k) => k);
-  say(be() ? ("Backend CPU: " + be()) : tr("beEmpty"));
   paintNote();
+  if(!h){ say(t.beBad + "—"); return; }
+  say(t.synth + " (ping backend…)…");
+  try{
+    const r = await fetch(h + "/tts/voices");
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    const n = j && j.voices ? j.voices.length : "?";
+    say(t.beOk + n + t.voicesU);
+  }catch(err){ say(t.beBad + ((err && err.message) || err)); }
 });
 function setMode(n){
   mode=n; mS.classList.toggle("on",n==="single"); mM.classList.toggle("on",n==="mix");
@@ -322,9 +339,14 @@ function fillVoices(){
 function paintNote(){
   const t=T(), a=vA.value, b=vB.value, h=be();
   const live = isLive(a)&&(mode==="single"||isLive(b));
-  if(live){ vNote.textContent = window.KokoroLang==="en" ? "Renders live on your CPU." : "Dựng live trên CPU của bạn."; return; }
+  if(live){
+    vNote.textContent = window.KokoroLang==="en" ? "Renders live on your CPU." : "Dựng live trên CPU của bạn.";
+    if(tts && !go.disabled) go.textContent = t.gen;
+    return;
+  }
   const off = (mode==="single"?a:b);
   vNote.textContent = h ? (off+t.beLive) : t.sampleOf;
+  if(!go.disabled) go.textContent = h ? t.viaGen : (tts ? t.play : go.textContent);
 }
 window.KokoroUseVoice = function(id){
   if(!id)return; vA.value=id; setMode("single");
@@ -332,7 +354,7 @@ window.KokoroUseVoice = function(id){
   const t=T();
   say(isLive(id) ? ("✓ " + id) : (t.sampleOf + " (" + id + ")" + (be() ? t.beLive : "")));
 };
-window.KokoroRefreshTexts = function(){ go.textContent = tts?T().gen:(go.textContent||T().load); paintNote(); };
+window.KokoroRefreshTexts = function(){ paintNote(); };
 
 function wav(samples,rate){
   const b=new ArrayBuffer(44+samples.length*2), d=new DataView(b);
@@ -355,7 +377,7 @@ async function loadEngine(){
       progress_callback:(p)=>{ if(p&&p.progress!=null)pset(p.progress); else if(p&&p.status)say(p.status+" — "+(p.file||MODEL_ID)); }});
     KokoroTTS = mod.KokoroTTS;
     pill.textContent="engine: wasm CPU · q8 ✓";
-    phide(); go.disabled=false; go.textContent=T().gen; say(T().ready);
+    phide(); go.disabled=false; say(T().ready); paintNote();
   }catch(err){
     console.error(err); phide(); go.disabled=false; go.textContent=T().play;
     pill.textContent="engine: mẫu (offline?)";
@@ -377,25 +399,43 @@ async function one(text,voice,speed,cb){
   if(!ch.length)throw new Error("empty stream");
   return {s:cat(ch),r};
 }
+const ALL_FAMILIES = ["kokoro-v1.0","kikiri-german-martin","kikiri-german-victoria","contextboxai-kokoro-vietnamese"];
+async function enableAllFamilies(h, t){
+  say(t.enFam); busyOn();
+  const r = await fetch(h + "/system/settings/model-families", {method:"PUT",
+    headers:{"Content-Type":"application/json"}, body:JSON.stringify({model_families:ALL_FAMILIES})});
+  if(!r.ok) throw new Error("backend " + r.status);
+}
+async function postAudio(h, path, payload){
+  const r = await fetch(h + path, {method:"POST", headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(payload)});
+  if(r.status === 400){
+    let detail = "";
+    try{ detail = (await r.clone().json()).detail || ""; }catch(e){}
+    if(/not served/i.test(detail||"")) return {retry:true};
+  }
+  if(!r.ok) throw new Error("backend " + r.status);
+  return {blob: await r.blob()};
+}
 async function viaBackend(text,a,b,mixW,speed){
   const t=T(), h=be();
-  if(mode==="mix"){
-    if(a===b)throw new Error(t.pick2);
-    const r=await fetch(h+"/tts/blend",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({text,voice:a,voice_b:b,blend:mixW,speed,device:"cpu"})});
-    if(!r.ok)throw new Error("backend "+r.status);
-    return {blob:await r.blob(),label:t.done+"A+B"+t.viaBe};
+  const payload = mode==="mix"
+    ? {path:"/tts/blend", body:{text,voice:a,voice_b:b,blend:mixW,speed,device:"cpu"}}
+    : {path:"/tts/generate", body:{text,voice:a,speed,device:"cpu",format:"wav"}};
+  if(mode==="mix" && a===b) throw new Error(t.pick2);
+  let res = await postAudio(h, payload.path, payload.body);
+  if(res.retry){
+    await enableAllFamilies(h, t);
+    res = await postAudio(h, payload.path, payload.body);
   }
-  const r=await fetch(h+"/tts/generate",{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({text,voice:a,speed,device:"cpu",format:"wav"})});
-  if(!r.ok)throw new Error("backend "+r.status);
-  return {blob:await r.blob(),label:t.done+a+t.viaBe};
+  const label = mode==="mix" ? (t.done+"A+B"+t.viaBe) : (t.done+a+t.viaBe);
+  return {blob:res.blob, label};
 }
 function playSample(id){
   const e=(window.VOICE_EXAMPLES||[]).find(v=>v.voice===id);
   if(!e)throw new Error("no sample: "+id);
   player.src=e.file; player.style.display="block"; player.play().catch(()=>{});
-  dl.style.display="none"; say(T().sampleOf+" ("+id+")");
+  dl.style.display="none"; phide(); say(T().sampleOf+" ("+id+")");
 }
 function showBlob(blob,label,rate,samples){
   if(player.src&&player.src.startsWith("blob:"))URL.revokeObjectURL(player.src);
@@ -415,10 +455,10 @@ go.addEventListener("click", async ()=>{
   const a=vA.value,b=vB.value,speed=parseFloat(spd.value)||1,mixW=parseFloat(mix.value)||0.5;
   const liveIds = mode==="single"?[a]:[a,b];
   const allLive = liveIds.every(isLive);
-  go.disabled=true;
+  go.disabled=true; busyOn();
   try{
     if(!allLive && be()){
-      say(t.synth+"(backend CPU)…"); pset(0.5);
+      say(t.synth+"(backend CPU)…"); busyOn();
       const {blob,label}=await viaBackend(text,a,b,mixW,speed);
       showBlob(blob,label); go.disabled=false; return;
     }

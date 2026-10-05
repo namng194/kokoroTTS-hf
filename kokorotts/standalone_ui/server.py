@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from kokorotts.browser_cors import BrowserStudioAccess
 from kokorotts.standalone_ui.gpu import GPU_MONITOR
 
 
@@ -34,6 +35,9 @@ def _read_version_file() -> str:
 
 def create_app(*, api_app: FastAPI) -> FastAPI:
     """Mount the standalone browser workspace on the existing TTS API."""
+    # Browser Studio on the static Space calls this backend cross-origin
+    # (incl. https page -> http localhost: Private Network Access).
+    api_app.add_middleware(BrowserStudioAccess)
     development_assets = os.getenv("KOKOROTTS_UI_DEV", "0").strip().lower() in {
         "1",
         "true",
