@@ -118,7 +118,12 @@ def flatten_gradio_requirements(torch_variant: str = "cpu") -> str:
 # Static gallery: examples/ page flattened to the Space root (index.html
 # must sit at root) plus the two small assets it references relatively.
 STATIC_README = ("spaces/README-static.md", "README.md")
-STATIC_ASSETS = ["favicon_small.png", "logo_small.png"]
+STATIC_ASSETS = [
+    "favicon_small.png",
+    "logo_small.png",
+    "kokorotts_hf_logo.svg",
+    "kokorotts_hf_favicon.svg",
+]
 
 
 def build_staging_static(dest: Path) -> list[str]:

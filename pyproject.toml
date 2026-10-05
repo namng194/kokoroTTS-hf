@@ -9,7 +9,7 @@ version = "1.0.0.dev0"
 description = "KokoroTTS standalone browser UI + API"
 readme = "README.md"
 authors = [
-    { name="Hangry Labs" }
+    { name="kokoroTTS-hf contributors" }
 ]
 license = { file = "LICENSE" }
 classifiers = [

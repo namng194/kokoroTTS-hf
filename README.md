@@ -1,14 +1,33 @@
 <p align="center">
-  <a href="https://nuggies.website/">
-    <img src="assets/kokoro_logo_horizontal.webp" alt="Hangry Labs KokoroTTS logo" width="900">
+  <a href="https://github.com/namng194/kokoroTTS-hf">
+    <img src="assets/kokorotts_hf_hero.svg" alt="KokoroTTS-HF — deploy-anywhere text to speech" width="900">
   </a>
 </p>
 
-# Hangry Labs KokoroTTS
+# KokoroTTS-HF
 
-Easy-to-run Kokoro text-to-speech Docker images with a browser UI and HTTP API included.
+Kokoro text-to-speech you can run **anywhere**: live on free Hugging Face
+hardware, or locally with one Docker command. Browser UI, OpenAI-compatible
+and native HTTP APIs included — 70 voices, 11 languages, no Python
+environment wrestling.
 
-This Hangry Labs fork is made for ease of use. The aim is that anyone should be able to run text to speech without fighting Python environments, missing model files, or unclear setup: a person trying it at home, a developer wiring it into an app, or a professional evaluating it for a production environment. Install Docker, run one command from Quick Start, open the local link, and start generating speech.
+**Try it right now, no install:**
+
+- 🔊 [Live inference — type text, get speech](https://huggingface.co/spaces/nam194/kokoroTTS-hf-live)
+  (free ZeroGPU, 70 voices)
+- 🎧 [Voice gallery — hear every voice](https://nam194-kokorotts-hf.static.hf.space/)
+  (free static page, no backend)
+
+Or run it locally (build once from this repo, GPU included):
+
+```bash
+git clone https://github.com/namng194/kokoroTTS-hf && cd kokoroTTS-hf
+docker build --target baked -t kokorotts-hf:local .
+docker run -p 7860:7860 --gpus all kokorotts-hf:local
+```
+
+then open **[http://localhost:7860](http://localhost:7860)**. See
+[Quick Start](#quick-start) for CPU / versioned / tiny-image variants.
 
 You get:
 - A responsive browser audio workspace for generation, streaming, playback, and downloads
@@ -17,39 +36,20 @@ You get:
 - 70 voices across 11 supported languages, including dedicated German and Vietnamese checkpoints
 - WAV, MP3, FLAC, OGG Vorbis, Opus, AAC, and raw PCM output
 - Offline-friendly usage: download an image once, keep it, and run it later without relying on live model downloads
+- This fork's own additions: Hugging Face Spaces flavours (live above),
+  lean-boot profiles (`KOKOROTTS_PRELOAD`), and a shared-hosting text guard
+  (`KOKOROTTS_MAX_CHARS`) — see [Fork vision & roadmap](docs/VISION.md)
 
-Official container images are published to both [Docker Hub](https://hub.docker.com/r/hangrylabs/kokorotts/tags) and [GitHub Container Registry](https://github.com/Hangry-Labs/kokoroTTS/pkgs/container/kokorotts).
+## What's ours vs upstream
 
-Examples and voice previews: [hangry-labs.github.io/kokoroTTS/examples](https://hangry-labs.github.io/kokoroTTS/examples/).
-
-Hangry Labs home: [nuggies.website](https://nuggies.website/).
-
-## Hugging Face Spaces (new in this community edition)
-
-This fork adds a lightweight **Hugging Face Spaces** deployment flavour:
-Kokoro-82M is small enough to run on a free CPU Space.
-
-- **Live inference (free ZeroGPU, real TTS)**:
-  [nam194/kokoroTTS-hf-live](https://huggingface.co/spaces/nam194/kokoroTTS-hf-live)
-  — type text, pick any of the 70 voices, get speech. GPU inference via
-  `@spaces.GPU`, deployed with
-  `python scripts/deploy_hf_space.py --flavour gradio --space-id YOU/kokoroTTS-hf-live --hardware zero-a10g --torch cuda`
-- **Live voice gallery (free tier, no backend)**:
-  [nam194-kokorotts-hf.static.hf.space](https://nam194-kokorotts-hf.static.hf.space/)
-  — all 70 voices playable in the browser, deployed from this repo via
-  `python scripts/deploy_hf_space.py --flavour static`
-- **Docker Space (recommended, needs PRO for hosted CPU)** — full browser UI + OpenAI-compatible and
-  native HTTP APIs, CPU-optimized: [`Dockerfile.hf`](Dockerfile.hf)
-- **Gradio demo** — minimal free-CPU teaser: [`spaces/gradio_app.py`](spaces/gradio_app.py)
-- **Guide**: [`docs/HF_SPACES.md`](docs/HF_SPACES.md)
-- **Deploy helper**: `python scripts/deploy_hf_space.py --flavour docker --space-id YOU/kokorotts-hf`
-  (auth via `HF_TOKEN` env var — never commit tokens)
-
-> Community edition by [@namng194](https://github.com/namng194), based on the
-> Hangry Labs KokoroTTS fork (Apache-2.0) and the original
-> [hexgrad/Kokoro](https://github.com/hexgrad/kokoro). Upstream credits,
-> model/voice asset licenses, and local Docker GPU workflows are unchanged —
-> see [About This Fork](#about-this-fork) and [License](#license).
+This is a community fork with its own direction (**deploy-anywhere**), not a
+mirror. Concrete contributions of this fork: `kokorotts/space.py` profiles,
+`Dockerfile.hf`, the Gradio + static Space flavours, `scripts/deploy_hf_space.py`,
+`docs/VISION.md`, and this branding. The inference engine, voice set, UI
+workflows, and API contracts build on the excellent work of
+[Hangry Labs KokoroTTS](https://github.com/Hangry-Labs/kokoroTTS) (Apache-2.0)
+and the original [hexgrad/Kokoro](https://github.com/hexgrad/kokoro) research —
+full credits in [License](#license) and [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 
 ## Contents
 
@@ -74,15 +74,20 @@ Kokoro-82M is small enough to run on a free CPU Space.
 
 ## Listen and Have a Look
 
-Hear all 70 voices in their supported languages on the interactive examples page. Choose a language, compare speakers, and listen directly in the browser:
+Hear all 70 voices in their supported languages on this fork's own gallery
+(deployed from [`examples/`](examples/) in this repo). Choose a language,
+compare speakers, and listen directly in the browser:
 
-**[Open the KokoroTTS examples page](https://hangry-labs.github.io/kokoroTTS/examples/)**
+**[Open the KokoroTTS-HF voice gallery](https://nam194-kokorotts-hf.static.hf.space/)**
+
+Want to synthesize your own text instead of samples?
+**[Open the live inference Space](https://huggingface.co/spaces/nam194/kokoroTTS-hf-live)**.
 
 The included interface provides generation and streaming workflows, precise voice controls, waveform playback and downloads, live API information, and runtime/GPU monitoring.
 
 <p align="center">
-  <a href="https://hangry-labs.github.io/kokoroTTS/examples/">
-    <img src="assets/ui.webp" alt="KokoroTTS browser interface with text generation and audio controls">
+  <a href="https://nam194-kokorotts-hf.static.hf.space/">
+    <img src="assets/ui.webp" alt="KokoroTTS-HF browser interface with text generation and audio controls">
   </a>
 </p>
 
@@ -90,7 +95,11 @@ The included interface provides generation and streaming workflows, precise voic
 
 ## Quick Start
 
-### Stable Release
+Prefer zero install? Use the [live Spaces](#kokorotts-hf) above, or build
+from this repo as shown at the top. The commands below use the upstream
+project's published images as a reference — same API, same port.
+
+### Stable Release (upstream image)
 
 Use the versioned `v0.3` image for a repeatable installation:
 
@@ -194,7 +203,7 @@ Authentication is disabled by default for simple local use. Set `KOKOROTTS_API_K
 docker run -p 7860:7860 --gpus all \
   -e KOKOROTTS_API_KEY="replace-with-a-secret" \
   -v kokorotts_data:/app/persistent \
-  hangrylabs/kokorotts:latest
+  kokorotts-hf:local
 ```
 
 Health routes remain public for Docker and orchestration probes.
@@ -278,7 +287,7 @@ Native and system endpoints:
 Install the stable HTTP client directly from the Git tag without the local inference dependencies:
 
 ```bash
-pip install --no-deps "kokorotts @ git+https://github.com/Hangry-Labs/kokoroTTS.git@v0.3"
+pip install --no-deps "kokorotts @ git+https://github.com/namng194/kokoroTTS-hf.git@main"
 ```
 
 Then point it at a running KokoroTTS server:
@@ -307,6 +316,11 @@ The original work is licensed under the Apache License 2.0, and we thank the aut
 
 While Kokoro is an impressive model/library project, this Hangry Labs fork focuses on making it simple to run and integrate: Docker image, included UI, API support, offline-friendly assets, and practical examples out of the box.
 
+**KokoroTTS-HF** (this repo) forks that line further toward **deploy-anywhere**:
+Hugging Face Spaces flavours with live public demos, lean-boot profiles for
+constrained hosts, and its own branding — see [What's ours vs upstream](#kokorotts-hf)
+and [`docs/VISION.md`](docs/VISION.md).
+
 German synthesis uses the Apache-2.0 Kokoro-compatible [Kikiri German Martin](https://huggingface.co/kikiri-tts/kikiri-german-martin) and [Kikiri German Victoria](https://huggingface.co/kikiri-tts/kikiri-german-victoria) model/voice releases. Each voice uses its matching fine-tuned checkpoint.
 
 Vietnamese synthesis uses the Apache-2.0 [ContextBoxAI Kokoro Vietnamese](https://huggingface.co/contextboxai/Kokoro-Vietnamese) checkpoint and fourteen voice packs from [Kokoro-Vietnamese](https://github.com/iamdinhthuan/Kokoro-Vietnamese). All Vietnamese voices share one fine-tuned checkpoint and use `vig2p` for Vietnamese text normalization and phonemization.
@@ -316,8 +330,8 @@ License and attribution are preserved in [`LICENSE`](LICENSE) and
 
 ## Support & Issues
 
-If you encounter bugs, have feature requests, or need help using Hangry Labs KokoroTTS:
-- Please open a new [GitHub Issue](https://github.com/Hangry-Labs/kokoroTTS/issues) with as much detail as possible
+If you encounter bugs, have feature requests, or need help using KokoroTTS-HF:
+- Please open a new [GitHub Issue](https://github.com/namng194/kokoroTTS-hf/issues) with as much detail as possible
 - Include error messages, logs, and reproduction steps if applicable
 - For general questions or ideas, use the project repository discussions when available
 
@@ -325,7 +339,7 @@ If you encounter bugs, have feature requests, or need help using Hangry Labs Kok
 
 ## Docker Images
 
-All published tags are mirrored on [Docker Hub](https://hub.docker.com/r/hangrylabs/kokorotts/tags) and [GitHub Container Registry](https://github.com/Hangry-Labs/kokoroTTS/pkgs/container/kokorotts). Replace `hangrylabs/kokorotts` in any command below with `ghcr.io/hangry-labs/kokorotts` to use GHCR.
+All published tags below are the upstream project's images, mirrored on [Docker Hub](https://hub.docker.com/r/hangrylabs/kokorotts/tags) and [GitHub Container Registry](https://github.com/Hangry-Labs/kokoroTTS/pkgs/container/kokorotts). This fork does not publish its own registry images yet — build from this repo or use the live Spaces instead. Replace `hangrylabs/kokorotts` in any command below with `ghcr.io/hangry-labs/kokorotts` to use GHCR.
 
 - Full images contain the standard Kokoro model, both dedicated German checkpoints, the dedicated Vietnamese checkpoint, all 70 voice packs, configuration, and required language data. They are ready for offline use after the image has been pulled.
 - Tiny images contain the complete runtime but download Hugging Face model and voice assets on first use. Mount the optional `/app/persistent` data volume to preserve downloads and settings across containers.

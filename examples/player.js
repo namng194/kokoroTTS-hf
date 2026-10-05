@@ -150,8 +150,8 @@ const LANGUAGE_LABELS = {
 
 const TRANSLATIONS = {
   en: {
-    title: "Hangry Labs KokoroTTS Voice Examples",
-    dockerHub: "Docker Hub",
+    title: "KokoroTTS-HF Voice Examples",
+    liveDemo: "Live inference",
     brandSubtitle: "Useful tools, easy to run",
     headline: "KokoroTTS voice examples",
     intro: "Easy-to-run text-to-speech Docker images built for professionals and for people who are not technical. Install Docker, run one command, open the browser, or call the same API from your own application. KokoroTTS creates compact MP3 audio, exposes the full Kokoro voice set, and works out of the box.",
@@ -167,8 +167,8 @@ const TRANSLATIONS = {
     seekSample: "Seek sample",
   },
   ja: {
-    title: "Hangry Labs KokoroTTS 音声サンプル",
-    dockerHub: "Docker Hub",
+    title: "KokoroTTS-HF 音声サンプル",
+    liveDemo: "ライブ推論",
     brandSubtitle: "便利なツールを、簡単に",
     headline: "KokoroTTS 音声サンプル",
     intro: "専門家にも、技術に詳しくない人にも使いやすい、Docker で動くテキスト読み上げです。Docker を入れて、コマンドを一つ実行し、ブラウザーを開くだけです。内蔵 UI から使うことも、自分のアプリケーションから同じ API を呼び出すこともできます。KokoroTTS はコンパクトな MP3 音声を作成し、すぐに使えます。",
@@ -184,8 +184,8 @@ const TRANSLATIONS = {
     seekSample: "サンプルをシーク",
   },
   zh: {
-    title: "Hangry Labs KokoroTTS 声音示例",
-    dockerHub: "Docker Hub",
+    title: "KokoroTTS-HF 声音示例",
+    liveDemo: "在线推理",
     brandSubtitle: "实用工具，轻松运行",
     headline: "KokoroTTS 声音示例",
     intro: "易于运行的文本转语音 Docker 镜像，适合专业人员，也适合不太懂技术的用户。安装 Docker，运行一个命令，打开浏览器，或从自己的应用程序调用同一个 API。KokoroTTS 可以生成体积较小的 MP3 音频，提供完整的 Kokoro 声音集，并且开箱即用。",
@@ -201,8 +201,8 @@ const TRANSLATIONS = {
     seekSample: "跳转示例音频",
   },
   es: {
-    title: "Ejemplos de voz de Hangry Labs KokoroTTS",
-    dockerHub: "Docker Hub",
+    title: "Ejemplos de voz de KokoroTTS-HF",
+    liveDemo: "Probar en vivo",
     brandSubtitle: "Herramientas útiles, fáciles de ejecutar",
     headline: "Ejemplos de voz de KokoroTTS",
     intro: "Imágenes Docker de texto a voz fáciles de ejecutar, hechas para profesionales y para personas que no son técnicas. Instala Docker, ejecuta un comando, abre el navegador o llama a la misma API desde tu propia aplicación. KokoroTTS crea audio MP3 compacto, expone todo el conjunto de voces de Kokoro y funciona desde el primer momento.",
@@ -218,8 +218,8 @@ const TRANSLATIONS = {
     seekSample: "Buscar en la muestra",
   },
   fr: {
-    title: "Exemples de voix Hangry Labs KokoroTTS",
-    dockerHub: "Docker Hub",
+    title: "Exemples de voix KokoroTTS-HF",
+    liveDemo: "Essai en direct",
     brandSubtitle: "Des outils utiles, faciles à lancer",
     headline: "Exemples de voix KokoroTTS",
     intro: "Des images Docker de texte vers parole faciles à lancer, faites pour les professionnels et pour les personnes qui ne sont pas techniques. Installez Docker, lancez une commande, ouvrez le navigateur ou appelez la même API depuis votre application. KokoroTTS crée un audio MP3 compact, expose tout l'ensemble de voix Kokoro et fonctionne immédiatement.",
@@ -235,8 +235,8 @@ const TRANSLATIONS = {
     seekSample: "Parcourir l'extrait",
   },
   hi: {
-    title: "Hangry Labs KokoroTTS आवाज़ उदाहरण",
-    dockerHub: "Docker Hub",
+    title: "KokoroTTS-HF आवाज़ उदाहरण",
+    liveDemo: "लाइव सुनें",
     brandSubtitle: "उपयोगी टूल, चलाने में आसान",
     headline: "KokoroTTS आवाज़ उदाहरण",
     intro: "चलाने में आसान टेक्स्ट टू स्पीच Docker इमेज, पेशेवरों और गैर-तकनीकी लोगों दोनों के लिए। Docker इंस्टॉल करें, एक कमांड चलाएँ, ब्राउज़र खोलें, या अपने एप्लिकेशन से वही API कॉल करें। KokoroTTS छोटा MP3 ऑडियो बनाता है, पूरा Kokoro voice set उपलब्ध कराता है, और तुरंत काम करता है।",
@@ -252,8 +252,8 @@ const TRANSLATIONS = {
     seekSample: "नमूना खोजें",
   },
   it: {
-    title: "Esempi di voce Hangry Labs KokoroTTS",
-    dockerHub: "Docker Hub",
+    title: "Esempi di voce KokoroTTS-HF",
+    liveDemo: "Prova dal vivo",
     brandSubtitle: "Strumenti utili, facili da eseguire",
     headline: "Esempi di voce KokoroTTS",
     intro: "Immagini Docker per text to speech facili da eseguire, pensate per professionisti e per persone non tecniche. Installa Docker, esegui un comando, apri il browser oppure chiama la stessa API dalla tua applicazione. KokoroTTS crea audio MP3 compatto, espone l'intero set di voci Kokoro e funziona subito.",
@@ -269,8 +269,8 @@ const TRANSLATIONS = {
     seekSample: "Scorri il campione",
   },
   pt: {
-    title: "Exemplos de voz do Hangry Labs KokoroTTS",
-    dockerHub: "Docker Hub",
+    title: "Exemplos de voz do KokoroTTS-HF",
+    liveDemo: "Testar ao vivo",
     brandSubtitle: "Ferramentas úteis, fáceis de executar",
     headline: "Exemplos de voz do KokoroTTS",
     intro: "Imagens Docker de text to speech fáceis de executar, feitas para profissionais e para pessoas que não são técnicas. Instale o Docker, execute um comando, abra o navegador ou chame a mesma API a partir da sua aplicação. O KokoroTTS cria áudio MP3 compacto, expõe todo o conjunto de vozes Kokoro e funciona direto.",
@@ -286,8 +286,8 @@ const TRANSLATIONS = {
     seekSample: "Navegar no exemplo",
   },
   de: {
-    title: "Hangry Labs KokoroTTS Stimmbeispiele",
-    dockerHub: "Docker Hub",
+    title: "KokoroTTS-HF Stimmbeispiele",
+    liveDemo: "Live testen",
     brandSubtitle: "Nützliche Werkzeuge, einfach auszuführen",
     headline: "KokoroTTS Stimmbeispiele",
     intro: "Einfach auszuführende Text-zu-Sprache-Docker-Images für Profis und für Menschen ohne technische Vorkenntnisse. Installieren Sie Docker, führen Sie einen Befehl aus, öffnen Sie den Browser oder rufen Sie dieselbe API aus Ihrer eigenen Anwendung auf. KokoroTTS erstellt kompakte MP3-Audiodateien, bietet alle Stimmen und funktioniert sofort.",
@@ -303,8 +303,8 @@ const TRANSLATIONS = {
     seekSample: "Im Beispiel suchen",
   },
   vi: {
-    title: "Ví dụ giọng nói Hangry Labs KokoroTTS",
-    dockerHub: "Docker Hub",
+    title: "Ví dụ giọng nói KokoroTTS-HF",
+    liveDemo: "Thử trực tiếp",
     brandSubtitle: "Công cụ hữu ích, dễ dàng khởi chạy",
     headline: "Ví dụ giọng nói KokoroTTS",
     intro: "Bộ Docker chuyển văn bản thành giọng nói dễ chạy, dành cho cả chuyên gia và người không rành kỹ thuật. Hãy cài Docker, chạy một lệnh, mở trình duyệt hoặc gọi cùng một API từ ứng dụng của bạn. KokoroTTS tạo âm thanh MP3 nhỏ gọn, cung cấp đầy đủ các giọng nói và hoạt động ngay sau khi khởi động.",
