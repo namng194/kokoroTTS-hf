@@ -146,6 +146,22 @@ one request at a time. It is a teaser for the Docker flavour.
   smoke tests.
 - The deploy helper and CI checks in this repo never touch the GPU.
 
+## Verified: pure-CPU inference (0 MB VRAM)
+
+Measured Oct 2026 on a 20-core laptop CPU, first run (weights downloaded
+once, ~330MB for the standard family):
+
+| Request | Audio | Wall clock | Device |
+|---|---|---|---|
+| `af_heart` "Hello from CPU inference on a laptop." | 3.17 s | 15.3 s cold / <1 s warm | cpu |
+| Blend `af_heart`+`af_bella` @0.5 (warm) | 2.38 s | 0.7 s | cpu |
+| `diem_trinh` Vietnamese (warm model, cold family) | 3.62 s | 16.9 s | cpu |
+
+Cold family/model loads dominate; warm synthesis runs ~0.2–3x realtime on
+CPU. Conclusion for constrained hosts: CPU inference is slow but fully
+working — a valid fallback when no GPU and no ZeroGPU quota remain.
+The `spaces/gradio_app.py` auto-selects CUDA when present, CPU otherwise.
+
 ## Troubleshooting
 
 - **Build OOM on free tier**: use the Gradio flavour, or keep the Docker
