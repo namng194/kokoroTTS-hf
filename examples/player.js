@@ -21,6 +21,7 @@
   var STR = {
     vi: {
       tagline: "70 giọng đọc · 11 ngôn ngữ · CPU",
+      eyebrow: "Studio TTS · chạy hoàn toàn trên CPU",
       hero: "Nói bằng trình duyệt của bạn",
       heroSub: "Gõ chữ, chọn 1 trong 70 giọng, bấm Tạo tiếng — 28 giọng Anh tổng hợp trực tiếp trên máy bạn (CPU), các giọng còn lại phát mẫu studio tức thì. Không server, không quota.",
       heroSubEn: "Type text, pick any of 70 voices, press Generate — 28 English voices synthesize live on your CPU, the rest play studio samples instantly. No server, no quota.",
@@ -40,6 +41,7 @@
     },
     en: {
       tagline: "70 voices · 11 languages · CPU",
+      eyebrow: "TTS studio · runs fully on CPU",
       hero: "Speak in your browser",
       heroSub: "Type text, pick any of 70 voices, press Generate — 28 English voices synthesize live on your CPU, the rest play studio samples instantly. No server, no quota.",
       heroSubEn: "Gõ chữ, chọn 1 trong 70 giọng, bấm Tạo tiếng — 28 giọng Anh live trên CPU, các giọng còn lại phát mẫu tức thì. Không server, không quota.",
@@ -125,8 +127,8 @@
       html += '<article class="vcard">' +
         '<div class="nm">' + escapeHtml(v.name) + "</div>" +
         '<div class="lg">' + escapeHtml(langName(v.language)) + "</div>" +
-        '<span class="id">' + escapeHtml(v.voice) + "</span>" +
-        '<span class="tag ' + (live ? "live" : "sample") + '">' + (live ? t("live") : t("sample")) + "</span>" +
+        '<div class="vmeta"><span class="id">' + escapeHtml(v.voice) + "</span>" +
+        '<span class="tag ' + (live ? "live" : "sample") + '">' + (live ? t("live") : t("sample")) + "</span></div>" +
         '<audio preload="none" src="' + escapeAttr(v.file) + '"></audio>' +
         '<div style="display:flex;gap:8px;margin-top:10px">' +
         '<button class="btn use" type="button" data-play="' + i + '" style="flex:1">▶ ' + t("play") + "</button>" +

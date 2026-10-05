@@ -7,101 +7,127 @@
 <link rel="icon" type="image/svg+xml" href="../assets/kokorotts_hf_favicon.svg">
 <style>
 :root{
-  --bg:#0a0605; --panel:rgba(26,15,8,.94); --panel2:rgba(38,21,10,.94);
-  --line:rgba(255,107,0,.30); --line-soft:rgba(255,107,0,.16);
-  --accent:#ff6b00; --accent2:#ff9b45; --text:#ffe9d6; --muted:#d09a6c; --dim:#9c6b45;
-  --radius:16px;
+  --bg:#0b0e13; --panel:#12161d; --panel2:#151b23; --field:#0d1218;
+  --line:#232c38; --line-soft:#1b2330;
+  --accent:#ff6b00; --accent-soft:rgba(255,107,0,.12); --accent-text:#ffa25e;
+  --text:#edf1f6; --muted:#98a2b3; --faint:#5f6b7c;
+  --ok:#56d364; --ok-bg:rgba(63,185,80,.10); --ok-line:rgba(63,185,80,.38);
+  --radius:14px;
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{
   margin:0; min-height:100vh; color:var(--text);
   font-family:"Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
   background:
-    radial-gradient(900px 480px at 12% -80px, rgba(255,107,0,.16), transparent 60%),
-    radial-gradient(760px 420px at 88% 8%, rgba(255,60,0,.10), transparent 60%),
-    radial-gradient(1000px 700px at 50% 110%, rgba(255,107,0,.08), transparent 60%),
+    radial-gradient(1000px 420px at 50% -140px, rgba(255,107,0,.08), transparent 65%),
     var(--bg);
 }
-a{color:var(--accent2)}
-.wrap{max-width:1060px;margin:0 auto;padding:20px 18px 60px}
+a{color:var(--accent-text)}
+.wrap{max-width:1060px;margin:0 auto;padding:24px 22px 70px}
 /* top bar */
-.top{display:flex;align-items:center;gap:14px;padding:12px 16px;border:1px solid var(--line-soft);
-  border-radius:var(--radius);background:rgba(16,9,5,.85);flex-wrap:wrap}
-.brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit;margin-right:auto}
-.brand img{width:44px;height:44px;border-radius:10px;border:1px solid var(--line);box-shadow:0 0 18px rgba(255,107,0,.25)}
-.brand b{font-size:19px;letter-spacing:.2px}
-.brand small{display:block;color:var(--muted);font-size:12px;font-weight:400}
-.btn{display:inline-block;border:1px solid var(--line);background:rgba(255,107,0,.10);color:var(--text);
-  border-radius:999px;padding:9px 18px;font-size:14px;font-weight:700;text-decoration:none;cursor:pointer;font-family:inherit}
-.btn:hover{background:rgba(255,107,0,.24)}
-.btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#22100a;border:none;
-  box-shadow:0 0 22px rgba(255,107,0,.35)}
-.btn.primary:hover{filter:brightness(1.07)}
-.btn:disabled{opacity:.5;cursor:wait}
-.btn.on{background:rgba(255,107,0,.30);border-color:var(--accent)}
+.top{position:sticky;top:12px;z-index:20;display:flex;align-items:center;gap:12px;
+  padding:10px 14px;border:1px solid var(--line);border-radius:12px;
+  background:rgba(14,18,24,.88);backdrop-filter:blur(12px);flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:11px;text-decoration:none;color:inherit;margin-right:auto}
+.brand img{width:38px;height:38px;border-radius:9px}
+.brand b{font-size:16.5px;letter-spacing:.1px;color:var(--text)}
+.brand small{display:block;color:var(--muted);font-size:12px;font-weight:400;margin-top:1px}
+.btn{display:inline-block;border:1px solid #2e3743;background:transparent;color:#d5dbe3;
+  border-radius:10px;padding:9px 17px;font-size:13.5px;font-weight:600;text-decoration:none;
+  cursor:pointer;font-family:inherit;transition:background .15s,border-color .15s,color .15s}
+.btn:hover{background:#1a212b;border-color:#3a4552}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn.primary{background:linear-gradient(180deg,#ff7a1a,#f25c00);color:#fff;border:1px solid #f25c00;
+  box-shadow:0 6px 20px rgba(255,107,0,.25)}
+.btn.primary:hover{filter:brightness(1.06)}
+.btn:disabled{opacity:.45;cursor:wait}
+.btn.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-text)}
 /* hero */
-.hero{padding:38px 6px 8px}
-.hero h1{margin:0;font-size:clamp(30px,5vw,50px);line-height:1.05;letter-spacing:-.5px;
-  color:var(--accent);text-shadow:0 0 24px rgba(255,107,0,.55),0 0 60px rgba(255,60,0,.25)}
-.hero p{margin:14px 0 0;max-width:720px;color:var(--text);font-size:17px;line-height:1.7}
-.hero p span.en{display:block;color:var(--muted);font-size:14px;margin-top:4px}
-.pills{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
-.pill{border:1px solid var(--line);background:rgba(255,107,0,.10);border-radius:999px;
-  padding:7px 15px;font-size:13.5px;font-weight:600;color:var(--text)}
-.pill b{color:var(--accent2)}
+.hero{padding:44px 4px 6px;max-width:780px}
+.eyebrow{display:inline-block;font-size:11.5px;font-weight:800;letter-spacing:.22em;
+  color:var(--accent-text);text-transform:uppercase;margin-bottom:12px}
+.hero h1{margin:0;font-size:clamp(30px,4.6vw,46px);line-height:1.08;letter-spacing:-1px;color:#f5f7fa;font-weight:800}
+.hero p{margin:14px 0 0;color:var(--muted);font-size:16px;line-height:1.7}
+.hero p span.en{display:block;font-size:13.5px;color:var(--faint);margin-top:6px}
+.pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}
+.pill{border:1px solid var(--line);background:var(--panel);border-radius:999px;
+  padding:6px 14px;font-size:12.5px;font-weight:600;color:var(--muted)}
+.pill b{color:var(--text)}
 /* cards */
+.narrow{max-width:820px;margin-left:auto;margin-right:auto}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
-  padding:22px;margin-top:26px;box-shadow:0 0 34px rgba(255,107,0,.10)}
-.card.glow{border-color:rgba(255,107,0,.55);box-shadow:0 0 44px rgba(255,107,0,.20)}
-.card h2{margin:0 0 4px;font-size:23px;color:var(--accent);text-shadow:0 0 16px rgba(255,107,0,.4)}
-.card .sub{margin:0 0 6px;color:var(--muted);font-size:14px;line-height:1.65}
-label.fl{display:block;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent2);margin:16px 0 7px}
-textarea,select,input[type=text]{width:100%;border-radius:12px;border:1px solid var(--line);
-  background:#160c06;color:var(--text);padding:12px 14px;font-size:15px;font-family:inherit;line-height:1.6}
+  padding:26px;margin-top:30px}
+.card h2{margin:0;font-size:21px;color:#f5f7fa;letter-spacing:-.3px}
+.card .sub{margin:8px 0 0;color:var(--muted);font-size:14px;line-height:1.65}
+#studio{border-color:#31405200;border:1px solid var(--line);
+  box-shadow:0 18px 50px rgba(0,0,0,.45)}
+label.fl{display:block;font-size:11.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);margin:20px 0 8px}
+textarea,select,input[type=text]{width:100%;border-radius:10px;border:1px solid #2a3441;
+  background:var(--field);color:var(--text);padding:12px 14px;font-size:15px;font-family:inherit;line-height:1.6;
+  transition:border-color .15s,box-shadow .15s}
 textarea{min-height:120px;resize:vertical}
-textarea:focus,select:focus,input[type=text]:focus{outline:2px solid rgba(255,107,0,.65);border-color:var(--accent)}
+textarea:focus,select:focus,input[type=text]:focus{outline:none;border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(255,107,0,.16)}
 select optgroup{color:#000}
-input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+select option{color:#111}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:5px;border-radius:99px;background:#242e3a}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;margin-top:-6px;
+  border-radius:50%;background:var(--accent);border:2px solid #ffd9b8;box-shadow:0 1px 6px rgba(0,0,0,.5)}
+input[type=range]::-moz-range-track{height:5px;border-radius:99px;background:#242e3a}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--accent);border:2px solid #ffd9b8}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 20px}
 @media(max-width:720px){.grid2{grid-template-columns:1fr}}
-.seg{display:flex;gap:10px}
-.seg button{flex:1}
+.seg{display:flex;gap:0;background:var(--field);border:1px solid #2a3441;border-radius:11px;padding:4px}
+.seg button{flex:1;border:none}
+.seg .btn.on{background:#222c38;color:var(--accent-text);box-shadow:inset 0 0 0 1px rgba(255,107,0,.45)}
 .rowline{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.count{font-size:12.5px;color:var(--dim)}
-#go{width:100%;margin-top:20px;padding:15px;font-size:18px}
-.progress{height:9px;border-radius:99px;background:rgba(255,107,0,.14);border:1px solid var(--line-soft);
-  margin-top:14px;overflow:hidden;display:none}
-.progress>div{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .15s}
-.status{min-height:24px;margin-top:10px;font-size:14.5px;color:var(--accent2);line-height:1.6}
-audio.studio{width:100%;margin-top:12px;display:none}
+.count{font-size:12.5px;color:var(--faint);font-variant-numeric:tabular-nums}
+#go{width:100%;margin-top:24px;padding:15px;font-size:16.5px}
+.progress{height:6px;border-radius:99px;background:#1b2330;margin-top:16px;overflow:hidden;display:none}
+.progress>div{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),#ff9b45);transition:width .15s}
+.status{min-height:24px;margin-top:12px;font-size:14px;color:#c7cfd9;line-height:1.6}
+audio.studio{width:100%;margin-top:14px;display:none}
 .dlrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
 #dl{display:none}
-.note{font-size:13.5px;color:var(--muted);line-height:1.7;margin:12px 0 0}
-details.backend{margin-top:16px;border:1px dashed var(--line);border-radius:12px;padding:10px 14px}
-details.backend summary{cursor:pointer;font-weight:700;font-size:14px;color:var(--accent2)}
-.backendrow{display:flex;gap:10px;margin-top:10px}
+.note{font-size:13px;color:var(--muted);line-height:1.7;margin:12px 0 0}
+details.backend{margin-top:20px;border:1px dashed #2c3644;border-radius:12px;padding:12px 16px;background:rgba(0,0,0,.18)}
+details.backend summary{cursor:pointer;font-weight:600;font-size:13.5px;color:#c7cfd9}
+.backendrow{display:flex;gap:10px;margin-top:12px}
 .backendrow input{flex:1}
+.backendrow .btn{white-space:nowrap}
 /* voice wall */
-.filters{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 4px}
-.filters .btn{padding:8px 15px;font-size:13px}
-.wall{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
+.wallhead{max-width:820px;margin:56px auto 0}
+.wallhead h2{margin:0;font-size:21px;color:#f5f7fa;letter-spacing:-.3px}
+.wallhead p{margin:8px 0 0;color:var(--muted);font-size:14px;line-height:1.65}
+.filters{display:flex;gap:2px;flex-wrap:wrap;margin:18px 0 6px;border-bottom:1px solid var(--line-soft);padding-bottom:4px}
+.filters .btn{border:none;background:none;border-radius:8px 8px 0 0;padding:9px 13px;font-size:13px;
+  color:var(--muted);position:relative}
+.filters .btn:hover{background:#161d26;color:var(--text)}
+.filters .btn.on{background:none;color:var(--accent-text)}
+.filters .btn.on::after{content:"";position:absolute;left:10px;right:10px;bottom:-5px;height:2px;
+  background:var(--accent);border-radius:2px}
+.wall{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
 @media(max-width:900px){.wall{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){.wall{grid-template-columns:1fr}}
-.vcard{background:var(--panel2);border:1px solid var(--line-soft);border-radius:14px;padding:15px;
-  transition:transform .15s,border-color .2s,box-shadow .2s}
-.vcard:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 0 22px rgba(255,107,0,.25)}
-.vcard .nm{font-size:16.5px;font-weight:800;color:var(--text)}
-.vcard .lg{font-size:12.5px;color:var(--muted);margin-top:2px}
-.vcard .id{display:inline-block;margin-top:8px;font-size:11.5px;font-family:Consolas,monospace;
-  border:1px solid var(--line-soft);border-radius:99px;padding:3px 10px;color:var(--dim)}
-.tag{display:inline-block;margin:8px 0 0 6px;font-size:11px;font-weight:800;border-radius:99px;padding:3px 10px;
-  text-transform:uppercase;letter-spacing:.06em}
-.tag.live{background:rgba(46,160,67,.18);border:1px solid rgba(46,160,67,.6);color:#7ee2a0}
-.tag.sample{background:rgba(255,107,0,.14);border:1px solid var(--line);color:var(--accent2)}
-.vcard audio{width:100%;margin-top:10px;height:34px}
+.vcard{background:var(--panel);border:1px solid var(--line-soft);border-radius:12px;padding:16px;
+  transition:transform .15s,border-color .15s}
+.vcard:hover{transform:translateY(-2px);border-color:#334052}
+.vcard .nm{font-size:15.5px;font-weight:700;color:var(--text)}
+.vcard .lg{font-size:12.5px;color:var(--muted);margin-top:3px}
+.vmeta{display:flex;align-items:center;gap:7px;margin-top:10px;flex-wrap:wrap}
+.vcard .id{font-size:11px;font-family:ui-monospace,Consolas,monospace;background:#0c1016;
+  border:1px solid var(--line-soft);border-radius:6px;padding:3px 8px;color:var(--muted)}
+.tag{font-size:10.5px;font-weight:700;border-radius:99px;padding:3px 9px;
+  text-transform:uppercase;letter-spacing:.07em}
+.tag.live{background:var(--ok-bg);border:1px solid var(--ok-line);color:var(--ok)}
+.tag.sample{background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--muted)}
+.vcard audio{width:100%;margin-top:12px;height:32px;opacity:.92}
 .vcard .use{width:100%;margin-top:10px;padding:9px;font-size:13px}
-footer.end{text-align:center;color:var(--dim);font-size:13px;margin:38px 0 8px;line-height:2}
+footer.end{text-align:center;color:var(--faint);font-size:12.5px;margin:48px 0 8px;line-height:2}
 </style>
 </head>
 <body>
@@ -117,6 +143,7 @@ footer.end{text-align:center;color:var(--dim);font-size:13px;margin:38px 0 8px;l
   </div>
 
   <div class="hero">
+    <span class="eyebrow" data-i18n="eyebrow">Studio TTS · chạy hoàn toàn trên CPU</span>
     <h1 data-i18n="hero">Nói bằng trình duyệt của bạn</h1>
     <p><span data-i18n="heroSub">Gõ chữ, chọn 1 trong 70 giọng, bấm Tạo tiếng — 28 giọng Anh tổng hợp trực tiếp trên máy bạn (CPU), các giọng còn lại phát mẫu studio tức thì. Không server, không quota.</span>
     <span class="en" data-i18n="heroSubEn">Type text, pick any of 70 voices, press Generate — 28 English voices synthesize live on your CPU, the rest play studio samples instantly. No server, no quota.</span></p>
@@ -128,7 +155,7 @@ footer.end{text-align:center;color:var(--dim);font-size:13px;margin:38px 0 8px;l
     </div>
   </div>
 
-  <section class="card glow" id="studio">
+  <section class="card narrow" id="studio">
     <h2 data-i18n="studioTitle">Studio — tạo tiếng nói</h2>
     <p class="sub" data-i18n="studioSub">28 giọng tiếng Anh chạy live 100% trên CPU máy bạn. Giọng khác cần backend CPU (tùy chọn bên dưới), nếu không sẽ phát mẫu có sẵn.</p>
 
