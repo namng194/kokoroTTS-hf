@@ -21,11 +21,15 @@ FROM python:${PYTHON_VERSION} AS base
 
 ARG PYOPENJTALK_VERSION
 
+# /data is the only persistent directory on HF Spaces.
+# Lean boot for the free tier: standard family eager, German/Vietnamese
+# families enable on demand via System tab or API (persisted in /data).
+# Set KOKOROTTS_PRELOAD=all for the full 70-voice eager boot instead.
+# Shared-deployment guard: aborts oversized requests with HTTP 400.
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_ROOT_USER_ACTION=ignore \
-    # /data is the only persistent directory on HF Spaces.
     HF_HOME=/data/hf-cache \
     HUGGINGFACE_HUB_CACHE=/data/hf-cache \
     KOKOROTTS_SETTINGS_PATH=/data/app/settings.json \
@@ -33,11 +37,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     TRANSFORMERS_OFFLINE=0 \
     KOKOROTTS_DEVICE=cpu \
     KOKOROTTS_HF_SPACE=1 \
-    `# Lean boot for the free tier: standard family eager, German/Vietnamese` \
-    `# families enable on demand via System tab or API (persisted in /data).` \
-    `# Set KOKOROTTS_PRELOAD=all for the full 70-voice eager boot instead.` \
     KOKOROTTS_PRELOAD=standard \
-    `# Shared-deployment guard: aborts oversized requests with HTTP 400.` \
     KOKOROTTS_MAX_CHARS=5000 \
     PORT=7860 \
     HOST=0.0.0.0 \
