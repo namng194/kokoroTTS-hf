@@ -61,15 +61,22 @@ class TestGalleryBranding(unittest.TestCase):
         content = read("examples/index.html")
         self.assertIn(OUR_REPO, content)
         self.assertIn("kokorotts_hf_logo.svg", content)
-        self.assertIn("studio.html", content)
+        self.assertIn('#studio', content)
 
-    def test_studio_page_is_ours_and_live(self):
-        content = read("examples/studio.html")
+    def test_single_page_inference_covers_all_voices(self):
+        content = read("examples/index.html")
         self.assertNotIn("nuggies.website", content)
         self.assertNotIn("Hangry", content)
         self.assertIn("kokoro-js", content)
         self.assertIn("KokoroTTS-HF", content)
         self.assertIn("kokorotts_hf_favicon.svg", content)
+        self.assertIn("VOICE_EXAMPLES", content)
+        self.assertIn("KokoroStudioUseVoice", content)
+        self.assertIn("isLiveVoice", content)
+        for voice_id in ("af_heart", "jf_alpha", "diem_trinh", "df_victoria"):
+            self.assertIn(voice_id, read("examples/voices.js"))
+        self.assertFalse((REPO_ROOT / "examples/studio.html").exists(),
+                         "single-page: examples/studio.html must not exist")
 
     def test_live_demo_key_translated_everywhere(self):
         content = read("examples/player.js")

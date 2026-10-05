@@ -384,6 +384,22 @@
         text-align: right;
       }
 
+      .studio-field label { display: block; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #ff8a33; margin: 0 0 0.4rem; }
+      .studio-field textarea, .studio-field select { width: 100%; border-radius: 10px; border: 1px solid rgba(255,107,0,0.35); background: #120a06; color: #ffe4c7; padding: 0.75rem; font-size: 0.95rem; font-family: inherit; }
+      .studio-field textarea:focus, .studio-field select:focus { outline: 2px solid rgba(255,107,0,0.7); outline-offset: 1px; border-color: #ff6b00; }
+      .studio-field textarea { min-height: 120px; resize: vertical; line-height: 1.6; }
+      .studio-field input[type="range"] { width: 100%; accent-color: #ff6b00; cursor: pointer; }
+      .go { width: 100%; padding: 0.9rem; font-size: 1.05rem; font-weight: 800; border: none; border-radius: 12px; cursor: pointer; color: #1a0d00; background: linear-gradient(90deg, #ff6b00, #ff9b45); box-shadow: 0 0 24px rgba(255,107,0,0.35); }
+      .go:disabled { opacity: 0.5; cursor: wait; }
+      #studioStatus { min-height: 1.4rem; margin-top: 0.7rem; font-size: 0.88rem; color: #ffc394; }
+      #studioProgress { height: 0.55rem; border-radius: 999px; background: rgba(255,107,0,0.16); border: 1px solid rgba(255,107,0,0.3); margin-top: 0.6rem; overflow: hidden; display: none; }
+      #studioProgress > div { height: 100%; width: 0%; background: linear-gradient(90deg, #ff6b00, #ff9b45); transition: width 0.15s ease; }
+      .seg { display: flex; gap: 0.5rem; }
+      .seg button { flex: 1; appearance: none; border: 1px solid rgba(255,107,0,0.42); background: rgba(20,20,20,0.84); border-radius: 999px; color: #ffb076; cursor: pointer; font-size: 0.86rem; font-weight: 700; padding: 0.6rem; }
+      .seg button.is-active { background: rgba(255,107,0,0.25); border-color: #ff6b00; color: #ffc394; }
+      .use-voice-btn { margin-top: 0.75rem; width: 100%; appearance: none; border: 1px solid rgba(255,107,0,0.42); background: rgba(255,107,0,0.12); border-radius: 999px; color: #ffb076; cursor: pointer; font-size: 0.8rem; font-weight: 700; padding: 0.55rem; }
+      .use-voice-btn:hover { background: rgba(255,107,0,0.25); color: #ffc394; }
+
       a {
         color: #ff6b00;
       }
@@ -459,7 +475,7 @@
                     <input class="volume-slider" type="range" min="0" max="1" step="0.01" value="0.85" aria-label="Volume">
                   </div>
                   <nav class="top-links" aria-label="Project links">
-                    <a class="pill px-4 py-2 text-sm font-semibold no-underline" href="studio.html" data-i18n="liveDemo">Live inference</a>
+                    <a class="pill px-4 py-2 text-sm font-semibold no-underline" href="#studio" data-i18n="liveDemo">Live inference</a>
                     <a class="pill px-4 py-2 text-sm font-semibold no-underline" href="https://github.com/namng194/kokoroTTS-hf">GitHub</a>
                   </nav>
                 </div>
@@ -488,6 +504,72 @@
           </div>
         </header>
 
+        <section id="studio" class="brand-card mb-8 p-5">
+          <h2 class="text-2xl font-extrabold brand-glow">Live inference — 1 page, all voices</h2>
+          <p class="mt-2 text-sm leading-6">Type text, pick <span class="font-bold">any of the 70 voices below</span>, press Generate. The 28 English voices synthesize live in your browser (kokoro-js, WebGPU/WASM, no quota). The other 42 play their pre-rendered sample instantly — same page, no missing language.</p>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <span class="pill px-3 py-1 text-sm font-semibold" id="pillDevice">detecting device…</span>
+            <span class="pill px-3 py-1 text-sm font-semibold" id="pillVoices">loading voices…</span>
+            <span class="pill px-3 py-1 text-sm font-semibold">70 voices / 11 languages</span>
+          </div>
+          <div class="studio-field mt-4">
+            <div class="flex items-center justify-between gap-3">
+              <label for="studioText" style="margin:0">Text</label>
+              <span id="studioCount" class="text-xs">0 / 2000</span>
+            </div>
+            <textarea id="studioText" maxlength="2000">Hello from KokoroTTS-HF. This speech is generated entirely inside your browser.</textarea>
+          </div>
+          <div class="studio-field mt-4">
+            <label>Mode</label>
+            <div class="seg">
+              <button type="button" id="modeSingle" class="is-active">Single voice</button>
+              <button type="button" id="modeMix">Audio mix (A + B)</button>
+            </div>
+          </div>
+          <div class="studio-field mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label for="voiceA">Voice A (all 70)</label>
+              <select id="voiceA"><option>Loading…</option></select>
+            </div>
+            <div id="voiceBWrap" style="display:none">
+              <label for="voiceB">Voice B (mix)</label>
+              <select id="voiceB"><option>Loading…</option></select>
+            </div>
+          </div>
+          <div class="studio-field mt-4 grid grid-cols-1 gap-4 md:grid-cols-2" id="mixRow" style="display:none">
+            <div>
+              <label for="mixRange">Mix weight of B (<span id="mixVal">0.50</span>)</label>
+              <input type="range" id="mixRange" min="0" max="1" step="0.05" value="0.5">
+            </div>
+            <div>
+              <label>&nbsp;</label>
+              <p class="text-sm leading-6">Mix renders A and B separately, then blends the audio. Works when both are live voices.</p>
+            </div>
+          </div>
+          <div class="studio-field mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label for="speedRange">Speed: <span id="speedVal">1.00</span>x</label>
+              <input type="range" id="speedRange" min="0.5" max="2" step="0.05" value="1">
+            </div>
+            <div>
+              <label for="samplePreset">Quick text</label>
+              <select id="samplePreset">
+                <option value="Hello from KokoroTTS-HF. This speech is generated entirely inside your browser.">Intro (EN)</option>
+                <option value="Life is like a box of chocolates. You never know what you're gonna get.">Quote</option>
+                <option value="The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs.">Pangram</option>
+              </select>
+            </div>
+          </div>
+          <button class="go mt-5" id="studioGo" disabled>Loading model…</button>
+          <div id="studioProgress"><div></div></div>
+          <div id="studioStatus">Preparing…</div>
+          <audio id="studioPlayer" controls style="display:none"></audio>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <a class="pill px-4 py-2 text-sm font-semibold no-underline" id="studioDownload" href="#" download="kokorotts-hf.wav" style="display:none">Download WAV</a>
+          </div>
+          <p class="mt-3 text-sm leading-6" id="studioVoiceNote"></p>
+        </section>
+
         <section class="language-filter" aria-label="Filter voice examples by language" data-i18n-aria="voiceFilterLabel">
           <button class="filter-button" type="button" data-language-value="all" aria-pressed="false" data-i18n="filterAll">All</button>
           <button class="filter-button is-active" type="button" data-language-value="American English" aria-pressed="true">American English</button>
@@ -509,5 +591,208 @@
     <script src="voices.js"></script>
     <script src="player.js"></script>
     <script src="background.js"></script>
+    <script type="module">
+      import { KokoroTTS } from "https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.web.js";
+      const MODEL_ID = "onnx-community/Kokoro-82M-v1.0-ONNX";
+      const SINGLE_SHOT_LIMIT = 400;
+      const SUPPORTED_RE = /^(af_|am_|bf_|bm_)/;
+      const isLiveVoice = (id) => SUPPORTED_RE.test(id || "");
+      const $ = (id) => document.getElementById(id);
+      const textEl = $("studioText"), voiceAEl = $("voiceA"), voiceBEl = $("voiceB"),
+        voiceBWrap = $("voiceBWrap"), mixRow = $("mixRow"), modeSingle = $("modeSingle"),
+        modeMix = $("modeMix"), speedEl = $("speedRange"), speedVal = $("speedVal"),
+        mixEl = $("mixRange"), mixVal = $("mixVal"), sampleEl = $("samplePreset"),
+        goBtn = $("studioGo"), statusEl = $("studioStatus"), progressEl = $("studioProgress"),
+        progressBar = progressEl.querySelector("div"), player = $("studioPlayer"),
+        download = $("studioDownload"), count = $("studioCount"),
+        pillDevice = $("pillDevice"), pillVoices = $("pillVoices"), voiceNote = $("studioVoiceNote");
+      let tts = null, audioCtx = null, mode = "single";
+      const setStatus = (m) => { statusEl.textContent = m; };
+      const setProgress = (p) => { progressEl.style.display = "block"; progressBar.style.width = Math.round(Math.max(0, Math.min(1, p)) * 100) + "%"; };
+      const hideProgress = () => { progressEl.style.display = "none"; progressBar.style.width = "0%"; };
+      const updateCount = () => { count.textContent = (textEl.value || "").length + " / 2000"; };
+      textEl.addEventListener("input", updateCount); updateCount();
+      speedEl.addEventListener("input", () => { speedVal.textContent = Number(speedEl.value).toFixed(2); });
+      mixEl.addEventListener("input", () => { mixVal.textContent = Number(mixEl.value).toFixed(2); });
+      sampleEl.addEventListener("change", () => { textEl.value = sampleEl.value; updateCount(); });
+      function setMode(next) {
+        mode = next;
+        modeSingle.classList.toggle("is-active", next === "single");
+        modeMix.classList.toggle("is-active", next === "mix");
+        const isMix = next === "mix";
+        voiceBWrap.style.display = isMix ? "block" : "none";
+        mixRow.style.display = isMix ? "grid" : "none";
+        updateVoiceNote();
+      }
+      modeSingle.addEventListener("click", () => setMode("single"));
+      modeMix.addEventListener("click", () => setMode("mix"));
+      function updateVoiceNote() {
+        const a = voiceAEl.value, b = voiceBEl.value;
+        const live = isLiveVoice(a) && (mode === "single" || isLiveVoice(b));
+        voiceNote.textContent = live
+          ? "Selected voice renders live in your browser."
+          : "Selected voice is sample-only in-browser (model ships 28 English voices) — Generate plays its pre-rendered MP3 from the gallery below.";
+      }
+      function fillAllVoices() {
+        const list = (window.VOICE_EXAMPLES || []).slice().sort((x, y) => (x.language + x.voice).localeCompare(y.language + y.voice));
+        const groups = {};
+        for (const v of list) (groups[v.language] = groups[v.language] || []).push(v);
+        for (const [sel, selected] of [[voiceAEl, "af_heart"], [voiceBEl, "af_bella"]]) {
+          sel.innerHTML = "";
+          for (const lang of Object.keys(groups).sort()) {
+            const opt = document.createElement("optgroup");
+            opt.label = lang;
+            for (const v of groups[lang]) {
+              const o = document.createElement("option");
+              o.value = v.voice;
+              o.textContent = v.voice + " — " + v.name + (isLiveVoice(v.voice) ? " (live)" : " (sample)");
+              if (v.voice === selected) o.selected = true;
+              opt.appendChild(o);
+            }
+            sel.appendChild(opt);
+          }
+          sel.addEventListener("change", updateVoiceNote);
+        }
+        pillVoices.textContent = list.length + " voices / 11 languages";
+        updateVoiceNote();
+      }
+      window.KokoroStudioUseVoice = function (voiceId) {
+        if (!voiceId) return;
+        voiceAEl.value = voiceId;
+        setMode("single");
+        updateVoiceNote();
+        document.getElementById("studio").scrollIntoView({ behavior: "smooth" });
+        setStatus("Voice set to " + voiceId + (isLiveVoice(voiceId) ? " — press Generate." : " (sample-only) — press Generate to hear its sample."));
+      };
+      function encodeWav(samples, rate) {
+        const buffer = new ArrayBuffer(44 + samples.length * 2);
+        const view = new DataView(buffer);
+        const ws = (off, s) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
+        ws(0, "RIFF"); view.setUint32(4, 36 + samples.length * 2, true); ws(8, "WAVE");
+        ws(12, "fmt "); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+        view.setUint16(22, 1, true); view.setUint32(24, rate, true);
+        view.setUint32(28, rate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true);
+        ws(36, "data"); view.setUint32(40, samples.length * 2, true);
+        for (let i = 0; i < samples.length; i++) {
+          const s = Math.max(-1, Math.min(1, samples[i]));
+          view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+        }
+        return new Blob([buffer], { type: "audio/wav" });
+      }
+      const concatF32 = (chunks) => {
+        let total = 0;
+        for (const c of chunks) total += c.length;
+        const out = new Float32Array(total);
+        let off = 0;
+        for (const c of chunks) { out.set(c, off); off += c.length; }
+        return out;
+      };
+      const splitSentences = (text) => {
+        const parts = text.replace(/\s+/g, " ").match(/[^.!?]+[.!?]+["']?|\S[^.!?]*$/g);
+        const out = (parts || [text]).map((s) => s.trim()).filter(Boolean);
+        return out.length ? out : [text];
+      };
+      async function loadModel() {
+        fillAllVoices();
+        const hasGPU = !!navigator.gpu;
+        pillDevice.textContent = hasGPU ? "WebGPU detected" : "WASM mode";
+        const attempts = hasGPU ? [{ dtype: "fp32", device: "webgpu" }, { dtype: "q8", device: "wasm" }] : [{ dtype: "q8", device: "wasm" }];
+        let lastErr = null;
+        for (const opts of attempts) {
+          try {
+            setStatus("Downloading Kokoro-82M (" + opts.dtype + " / " + opts.device + ") — once, then cached…");
+            setProgress(0.02);
+            tts = await KokoroTTS.from_pretrained(MODEL_ID, {
+              dtype: opts.dtype, device: opts.device,
+              progress_callback: (prog) => {
+                if (prog && prog.progress != null) setProgress(prog.progress);
+                else if (prog && prog.status) setStatus(prog.status + " — " + (prog.file || MODEL_ID));
+              },
+            });
+            pillDevice.textContent = "running: " + opts.device + " / " + opts.dtype;
+            hideProgress();
+            goBtn.disabled = false;
+            goBtn.textContent = "Generate speech";
+            setStatus("Ready — 28 voices synthesize live, 42 play samples. Pick any voice and press Generate.");
+            return;
+          } catch (err) { lastErr = err; console.error("model load failed", opts, err); }
+        }
+        hideProgress();
+        setStatus("Model failed to load (" + (lastErr && lastErr.message ? lastErr.message : lastErr) + ") — gallery samples below still play.");
+        goBtn.disabled = false;
+        goBtn.textContent = "Play sample instead";
+      }
+      async function synthSingle(text, voice, speed, onChunk) {
+        if (text.length <= SINGLE_SHOT_LIMIT) {
+          const audio = await tts.generate(text, { voice, speed });
+          if (onChunk) onChunk(1, 1);
+          return { samples: audio.data, rate: audio.sampling_rate || 24000 };
+        }
+        const sentences = splitSentences(text);
+        const chunks = [];
+        let rate = 24000, i = 0;
+        for await (const { audio } of tts.stream(sentences.join(" "), { voice, speed })) {
+          chunks.push(audio.data); rate = audio.sampling_rate || rate; i += 1;
+          if (onChunk) onChunk(i, sentences.length);
+        }
+        if (!chunks.length) throw new Error("Stream produced no audio — try shorter text.");
+        return { samples: concatF32(chunks), rate };
+      }
+      function playSampleFile(voiceId, label) {
+        const entry = (window.VOICE_EXAMPLES || []).find((v) => v.voice === voiceId);
+        if (!entry) throw new Error("No sample found for " + voiceId);
+        player.src = entry.file; player.style.display = "block"; player.play().catch(() => {});
+        download.style.display = "none";
+        setStatus((label || "Sample-only voice") + " (" + voiceId + ") — playing pre-rendered sample. Live synthesis covers the 28 English voices.");
+      }
+      goBtn.addEventListener("click", async () => {
+        const text = (textEl.value || "").trim();
+        if (!text) { setStatus("Please enter some text first."); return; }
+        const a = voiceAEl.value, b = voiceBEl.value;
+        const needLive = mode === "single" ? [a] : [a, b];
+        if (needLive.some((v) => !isLiveVoice(v)) || !tts) {
+          try {
+            if (!tts && isLiveVoice(a) && (mode === "single" || isLiveVoice(b))) { setStatus("Model still loading — playing sample meanwhile."); }
+            playSampleFile(mode === "mix" && !isLiveVoice(a) ? a : (!isLiveVoice(a) ? a : b));
+          } catch (err) { setStatus("Synthesis failed: " + (err && err.message ? err.message : err)); }
+          return;
+        }
+        if (mode === "mix" && a === b) { setStatus("Pick two different voices to mix."); return; }
+        goBtn.disabled = true;
+        try {
+          if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          if (audioCtx.state === "suspended") await audioCtx.resume();
+          const speed = parseFloat(speedEl.value) || 1;
+          let samples, rate;
+          if (mode === "single") {
+            setStatus("Synthesizing (" + a + ") on your device…"); setProgress(0.4);
+            ({ samples, rate } = await synthSingle(text, a, speed, (i, n) => { setStatus("Synthesizing… chunk " + i + "/" + n); setProgress(0.2 + 0.7 * i / n); }));
+          } else {
+            const mixW = parseFloat(mixEl.value) || 0.5;
+            setStatus("Mix 1/2 — rendering " + a + "…"); setProgress(0.3);
+            const ra = await synthSingle(text, a, speed, null);
+            setStatus("Mix 2/2 — rendering " + b + "…"); setProgress(0.7);
+            const rb = await synthSingle(text, b, speed, null);
+            const n = Math.min(ra.samples.length, rb.samples.length);
+            const out = new Float32Array(n);
+            for (let i = 0; i < n; i++) out[i] = (1 - mixW) * ra.samples[i] + mixW * rb.samples[i];
+            samples = out; rate = ra.rate;
+          }
+          setProgress(0.9);
+          const buf = audioCtx.createBuffer(1, samples.length, rate);
+          buf.getChannelData(0).set(samples);
+          const src = audioCtx.createBufferSource();
+          src.buffer = buf; src.connect(audioCtx.destination); src.start();
+          if (player.src && player.src.startsWith("blob:")) URL.revokeObjectURL(player.src);
+          const url = URL.createObjectURL(encodeWav(samples, rate));
+          player.src = url; player.style.display = "block";
+          download.href = url; download.style.display = "inline-block";
+          hideProgress();
+          setStatus("Done in your browser — " + (samples.length / rate).toFixed(1) + "s of audio.");
+        } catch (err) { console.error(err); hideProgress(); setStatus("Synthesis failed: " + (err && err.message ? err.message : err)); }
+        goBtn.disabled = false;
+      });
+      loadModel();
+    </script>
   </body>
 </html>

@@ -5,7 +5,7 @@ Live now (free tier, static gallery, no backend):
 deployed from this repo with `scripts/deploy_hf_space.py --flavour static`.
 
 Live now (free, real inference, no server):
-**https://nam194-kokorotts-hf.static.hf.space/studio.html** — KokoroTTS-HF
+**https://nam194-kokorotts-hf.static.hf.space/#studio** — KokoroTTS-HF
 Studio runs Kokoro-82M 100% in the visitor's browser (kokoro-js q8,
 WebGPU/WASM, verified end-to-end in Node against the same model). No quota,
 no uploads, offline after the ~90MB first download. English voices fully

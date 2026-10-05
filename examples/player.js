@@ -339,8 +339,19 @@ function renderVoiceExamples() {
         <span class="rounded-full border border-orange-500/30 bg-orange-500/10 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-gray-300">${voice.voice}</span>
       </div>
       <audio preload="metadata" src="${voice.file}"></audio>
+      <button type="button" class="use-voice-btn" data-use-voice="${voice.voice}">Use this voice ↑</button>
     </article>
   `).join("");
+  grid.querySelectorAll("[data-use-voice]").forEach((btn) => {
+    btn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      if (typeof window.KokoroStudioUseVoice === "function") {
+        window.KokoroStudioUseVoice(btn.dataset.useVoice);
+      } else {
+        document.getElementById("studio")?.scrollIntoView({ behavior: "smooth" });
+      }
+    });
+  });
 }
 
 renderVoiceExamples();
