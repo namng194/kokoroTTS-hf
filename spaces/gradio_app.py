@@ -22,9 +22,13 @@ from __future__ import annotations
 import os
 import threading
 
-import spaces
-
-from kokorotts.catalog import LANGUAGE_CHOICES, voice_ids, voice_label, voice_language
+from kokorotts.catalog import (
+    LANGUAGE_CHOICES,
+    MODEL_FAMILY_CHOICES,
+    voice_ids,
+    voice_label,
+    voice_language,
+)
 from kokorotts.space import (
     build_runtime_kwargs,
     check_text_length,
@@ -80,7 +84,30 @@ def _inference_device() -> str:
         return "cpu"
 
 
-@spaces.GPU(duration=120)
+ALL_FAMILIES = list(MODEL_FAMILY_CHOICES.keys())
+
+
+def _synthesize(text: str, voice: str, speed: float, voice_blend):
+    runtime = get_runtime()
+    try:
+        return runtime.synthesize(
+            text=text, voice=voice, speed=speed,
+            device=_inference_device(), input_type="text",
+            voice_blend=voice_blend,
+        )
+    except ValueError as exc:
+        if "not served" not in str(exc):
+            raise
+        # Lean-boot deployments only serve the standard family: enable
+        # everything (downloads German/Vietnamese packs on first use) once.
+        runtime.set_served_model_families(ALL_FAMILIES)
+        return runtime.synthesize(
+            text=text, voice=voice, speed=speed,
+            device=_inference_device(), input_type="text",
+            voice_blend=voice_blend,
+        )
+
+
 def generate(text: str, mode: str, voice: str, voice_b: str, speed: float, mix: float):
     try:
         text = check_text_length(text)
@@ -101,11 +128,7 @@ def generate(text: str, mode: str, voice: str, voice_b: str, speed: float, mix: 
             raise ValueError("Blended voices must share one model family.")
         voice_blend = (voice_b, mix)
     runtime = get_runtime()
-    result = runtime.synthesize(
-        text=text, voice=voice, speed=speed,
-        device=_inference_device(), input_type="text",
-        voice_blend=voice_blend,
-    )
+    result = _synthesize(text, voice, speed, voice_blend)
     if result is None:
         raise RuntimeError("Synthesis returned no audio.")
     return SAMPLE_RATE, result.audio
@@ -170,6 +193,7 @@ def build_demo():
             fn=generate,
             inputs=[text, mode, voice, voice_b, speed, mix],
             outputs=audio,
+            api_name="generate",
         )
     return demo
 

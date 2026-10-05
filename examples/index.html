@@ -345,12 +345,13 @@ function paintNote(){
   const live = isLive(a)&&(mode==="single"||isLive(b));
   if(live){
     vNote.textContent = window.KokoroLang==="en" ? "Renders live on your CPU." : "Dựng live trên CPU của bạn.";
-    if(tts && !go.disabled) go.textContent = t.gen;
-    return;
+  } else {
+    const off = (mode==="single"?a:b);
+    vNote.textContent = h ? (off+t.beLive) : t.sampleOf;
   }
-  const off = (mode==="single"?a:b);
-  vNote.textContent = h ? (off+t.beLive) : t.sampleOf;
-  if(!go.disabled) go.textContent = h ? t.viaGen : (tts ? t.play : go.textContent);
+  // One button for every voice: it always says Generate; the engine
+  // router below picks live CPU, backend CPU, or instant sample.
+  if(tts && !go.disabled) go.textContent = t.gen;
 }
 window.KokoroUseVoice = function(id){
   if(!id)return; vA.value=id; setMode("single");
@@ -406,6 +407,7 @@ async function loadEngine(){
   }
   phide(); go.disabled=false;
   pill.textContent="engine: mẫu (offline?)";
+  go.textContent=T().gen;
   say(T().noEngine+" ("+((lastErr&&lastErr.message)||lastErr)+")");
 }
 const fmtMB = (b) => (b==null||!isFinite(b)) ? "?" : (b/1048576).toFixed(0)+"MB";

@@ -94,9 +94,11 @@ class TestGradioApp(unittest.TestCase):
         self.assertIn("def generate", src)
         self.assertIn("def get_runtime", src)
         self.assertIn("voice_choices", src)
-        # ZeroGPU rejects spaces without a @spaces.GPU function at startup.
-        self.assertIn("import spaces", src)
-        self.assertIn("@spaces.GPU", src)
+        # Free-CPU contract: no @spaces.GPU (needs paid/ZeroGPU hardware),
+        # named API for browser clients, families auto-enable on demand.
+        self.assertNotIn("@spaces.GPU", src)
+        self.assertIn('api_name="generate"', src)
+        self.assertIn("set_served_model_families", src)
 
     def test_space_frontmatter(self):
         readme = read("spaces/README.md")
