@@ -35,6 +35,7 @@ from .model import KModel
 from .pipeline import KPipeline
 from .settings import RuntimeSettingsStore
 from .ssml import SSMLSynthesisUnit, SSMLValidationError, compile_ssml
+from .voice_blend import blend_packs
 
 logger = logging.getLogger(__name__)
 
@@ -270,10 +271,19 @@ class InferenceRuntime:
         device: str,
         input_type: str = "text",
         plan: list[SSMLSynthesisUnit] | None = None,
+        voice_blend: tuple[str, float] | None = None,
     ) -> Iterator[SynthesisChunk]:
         if plan is None:
             plan = self.prepare_synthesis(text, voice, input_type)
         pack = self._load_voice(voice)
+        if voice_blend is not None:
+            other_voice, weight = voice_blend
+            if voice_model_family(other_voice) != voice_model_family(voice):
+                raise ValueError(
+                    f"Cannot blend '{voice}' with '{other_voice}': voices from "
+                    "different model families use different weight spaces."
+                )
+            pack = blend_packs(pack, self._load_voice(other_voice), weight)
         model_family = voice_model_family(voice)
         fallback_reason = None
 
@@ -347,8 +357,12 @@ class InferenceRuntime:
         speed: float,
         device: str,
         input_type: str = "text",
+        voice_blend: tuple[str, float] | None = None,
     ) -> SynthesisResult | None:
-        chunks = list(self.iter_synthesis(text, voice, speed, device, input_type))
+        chunks = list(
+            self.iter_synthesis(text, voice, speed, device, input_type,
+                                voice_blend=voice_blend)
+        )
         if not chunks:
             return None
         return SynthesisResult(

@@ -1,29 +1,31 @@
 <p>
-  <a href="https://hangry-labs.github.io/kokoroTTS/examples/">
-    <img src="https://github.com/Hangry-Labs/kokoroTTS/raw/main/assets/kokoro_logo_horizontal.webp" alt="Hangry Labs KokoroTTS logo">
+  <a href="https://github.com/namng194/kokoroTTS-hf">
+    <img src="https://github.com/namng194/kokoroTTS-hf/raw/main/assets/kokorotts_hf_hero.svg" alt="KokoroTTS-HF deploy-anywhere text to speech">
   </a>
 </p>
 
-# Hangry Labs KokoroTTS
+# KokoroTTS-HF
 
-Easy-to-run Kokoro text-to-speech Docker images with a browser UI and HTTP API included.
+Kokoro text-to-speech you can run anywhere: live on free Hugging Face hardware, or locally with one Docker command. Browser UI, OpenAI-compatible and native HTTP APIs included — 70 voices, 11 languages.
 
-This Hangry Labs fork is built for people who want text to speech to work without a long setup. Install Docker, run one command, open the local UI, or call the API from your own application.
+This community edition builds on the Hangry Labs KokoroTTS fork (Apache-2.0) and the original hexgrad/Kokoro research. Try it with zero install first, then run it yourself.
 
 ## Listen First
 
-Voice examples are available here:
+Live inference (type text, get speech):
 
-https://hangry-labs.github.io/kokoroTTS/examples/
+https://huggingface.co/spaces/nam194/kokoroTTS-hf-live
 
-The examples page includes MP3 previews for all 70 voices across American English, British English, Japanese, Mandarin Chinese, Spanish, French, Hindi, Italian, Brazilian Portuguese, German, and Vietnamese. Selecting a language filters the examples and switches the page text to that language.
+Voice gallery (hear every voice, no backend):
+
+https://nam194-kokorotts-hf.static.hf.space/
 
 ## Project Links
 
-- Voice examples: https://hangry-labs.github.io/kokoroTTS/examples/
-- GitHub repository: https://github.com/Hangry-Labs/kokoroTTS
-- Issues and support: https://github.com/Hangry-Labs/kokoroTTS/issues
-- Hangry Labs: https://nuggies.website/
+- GitHub repository: https://github.com/namng194/kokoroTTS-hf
+- Issues and support: https://github.com/namng194/kokoroTTS-hf/issues
+- Live inference Space: https://huggingface.co/spaces/nam194/kokoroTTS-hf-live
+- Upstream project: https://github.com/Hangry-Labs/kokoroTTS
 
 ## Quick Start
 

@@ -194,6 +194,25 @@ class TestDeployHelper(unittest.TestCase):
         self.assertEqual(proc.returncode, 2)
 
 
+class TestVoiceBlendWiring(unittest.TestCase):
+    def test_blend_route_and_schema_exist(self):
+        api_src = read("kokorotts/api.py")
+        self.assertIn('"/tts/blend"', api_src)
+        self.assertIn("BlendRequest", api_src)
+        self.assertIn("voice_blend", api_src)
+        schema_src = read("kokorotts/schemas.py")
+        self.assertIn("class BlendRequest", schema_src)
+        self.assertIn("voice_b", schema_src)
+        runtime_src = read("kokorotts/runtime.py")
+        self.assertIn("voice_blend", runtime_src)
+        self.assertIn("blend_packs", runtime_src)
+
+    def test_gradio_app_exposes_blend_mode(self):
+        src = read("spaces/gradio_app.py")
+        self.assertIn("Blend", src)
+        self.assertIn("voice_blend", src)
+
+
 class TestNoCommittedSecrets(unittest.TestCase):
     SECRET = re.compile(r"(ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|hf_[A-Za-z0-9]{20,})")
 

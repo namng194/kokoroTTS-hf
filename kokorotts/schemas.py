@@ -57,6 +57,20 @@ class StreamingTTSRequest(TTSRequest):
     )
 
 
+class BlendRequest(TTSRequest):
+    """Mix two served voices of one model family into a new speaker.
+
+    ``blend`` is the weight of ``voice_b``: 0.0 reproduces ``voice`` exactly,
+    1.0 reproduces ``voice_b`` exactly. KokoroTTS-HF extension — upstream
+    serves fixed voices only.
+    """
+
+    voice_b: str = Field(..., description="Second Kokoro voice id to blend in.")
+    blend: float = Field(
+        0.5, ge=0.0, le=1.0, description="Weight of voice_b in 0..1."
+    )
+
+
 class OpenAISpeechRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

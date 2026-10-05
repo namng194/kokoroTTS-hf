@@ -70,7 +70,7 @@ RUN python /tmp/install_open_jtalk_dictionary.py \
 
 COPY pyproject.toml README.md LICENSE THIRD_PARTY_NOTICES.md VERSION /app/
 COPY kokorotts /app/kokorotts
-COPY assets/kokoro_favicon.webp assets/kokoro_logo_horizontal.webp assets/kokorotts_hf_logo.svg assets/kokorotts_hf_favicon.svg /app/assets/
+COPY assets/kokorotts_hf_logo.svg assets/kokorotts_hf_favicon.svg /app/assets/
 
 RUN mkdir -p /data/hf-cache /data/app /app/persistent/app /app/persistent/models/huggingface \
     && python -m pip install -e . --no-deps \

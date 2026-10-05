@@ -27,6 +27,9 @@ does not try to out-do upstream at its own game:
      choices persist in `/data` on Spaces.
 3. **CI + secret hygiene** — `hf-space-check` workflow validates both Space
    flavours without GPU or downloads and rejects committed tokens.
+4. **Voice blending** (`kokorotts/voice_blend.py`, `POST /tts/blend`, Blend
+   mode on the live Space) — mix any two same-family voices into a new
+   synthetic speaker. Upstream serves fixed voices only.
 
 ## Roadmap (planned, not yet built)
 

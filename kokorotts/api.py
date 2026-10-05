@@ -42,6 +42,7 @@ from .catalog import (
     voice_ids,
     voice_inventory,
     voice_language,
+    voice_model_family,
     voices_for_language,
 )
 from .openai_compat import (
@@ -56,6 +57,7 @@ from .openai_compat import (
 from .runtime import InferenceRuntime, SynthesisResult
 from .sample_texts import get_initial_text, get_intro_text, get_random_quote
 from .schemas import (
+    BlendRequest,
     MetricsRequest,
     OpenAISpeechRequest,
     PurgeRequest,
@@ -191,7 +193,9 @@ def apply_request_effects(waveform: np.ndarray, payload: TTSRequest) -> np.ndarr
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-def synthesize_payload(payload: TTSRequest) -> ProcessedSynthesis:
+def synthesize_payload(
+    payload: TTSRequest, voice_blend: tuple[str, float] | None = None
+) -> ProcessedSynthesis:
     output_format, device = validate_request(payload)
     try:
         inference = RUNTIME.synthesize(
@@ -200,6 +204,7 @@ def synthesize_payload(payload: TTSRequest) -> ProcessedSynthesis:
             payload.speed,
             device,
             payload.input_type,
+            voice_blend=voice_blend,
         )
     except SSMLValidationError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -212,8 +217,12 @@ def synthesize_payload(payload: TTSRequest) -> ProcessedSynthesis:
     )
 
 
-def audio_response(payload: TTSRequest, route_name: str) -> StreamingResponse:
-    result = synthesize_payload(payload)
+def audio_response(
+    payload: TTSRequest,
+    route_name: str,
+    voice_blend: tuple[str, float] | None = None,
+) -> StreamingResponse:
+    result = synthesize_payload(payload, voice_blend)
     try:
         audio_bytes = encode_audio_bytes(
             result.waveform, result.output_format, result.sample_rate
@@ -662,6 +671,34 @@ def openai_speech(payload: OpenAISpeechRequest) -> StreamingResponse:
 @api.post("/tts/generate", tags=["KokoroTTS native API"])
 def generate_tts(payload: TTSRequest) -> StreamingResponse:
     return audio_response(payload, "/tts/generate")
+
+
+@api.post("/tts/blend", tags=["KokoroTTS native API"])
+def blend_tts(payload: BlendRequest) -> StreamingResponse:
+    """Synthesize with a voice blended from two served voices (HF extension)."""
+    if not RUNTIME.serves_voice(payload.voice_b):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Voice '{payload.voice_b}' is not served by this deployment",
+        )
+    if voice_model_family(payload.voice_b) != voice_model_family(payload.voice):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Cannot blend '{payload.voice}' with '{payload.voice_b}': "
+                "voices must share one model family."
+            ),
+        )
+    try:
+        response = audio_response(
+            payload, "/tts/blend", voice_blend=(payload.voice_b, payload.blend)
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    response.headers["X-KokoroTTS-Blend"] = (
+        f"{payload.voice}+{payload.voice_b}@{payload.blend}"
+    )
+    return response
 
 
 @api.post("/tts/stream", tags=["KokoroTTS native API"])

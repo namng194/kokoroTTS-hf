@@ -36,6 +36,16 @@ class TestOwnAssets(unittest.TestCase):
             content = read(dockerfile)
             self.assertIn("kokorotts_hf_logo.svg", content, dockerfile)
             self.assertIn("kokorotts_hf_favicon.svg", content, dockerfile)
+            self.assertNotIn(".webp", content, f"{dockerfile} ships upstream art")
+            self.assertNotIn("hangrylabs", content, dockerfile)
+
+    def test_asset_directory_is_fully_ours(self):
+        files = sorted(
+            p.name for p in (REPO_ROOT / "assets").iterdir() if p.is_file()
+        )
+        self.assertTrue(files, "assets/ is empty")
+        foreign = [name for name in files if not name.startswith("kokorotts_hf_")]
+        self.assertEqual(foreign, [], f"upstream assets remain: {foreign}")
 
 
 class TestGalleryBranding(unittest.TestCase):

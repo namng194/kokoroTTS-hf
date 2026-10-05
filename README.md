@@ -37,8 +37,10 @@ You get:
 - WAV, MP3, FLAC, OGG Vorbis, Opus, AAC, and raw PCM output
 - Offline-friendly usage: download an image once, keep it, and run it later without relying on live model downloads
 - This fork's own additions: Hugging Face Spaces flavours (live above),
-  lean-boot profiles (`KOKOROTTS_PRELOAD`), and a shared-hosting text guard
-  (`KOKOROTTS_MAX_CHARS`) — see [Fork vision & roadmap](docs/VISION.md)
+  lean-boot profiles (`KOKOROTTS_PRELOAD`), a shared-hosting text guard
+  (`KOKOROTTS_MAX_CHARS`), and **voice blending** (`POST /tts/blend` — mix
+  two voices into a new speaker, upstream can't do this) — see
+  [Fork vision & roadmap](docs/VISION.md)
 
 ## What's ours vs upstream
 
@@ -83,13 +85,8 @@ compare speakers, and listen directly in the browser:
 Want to synthesize your own text instead of samples?
 **[Open the live inference Space](https://huggingface.co/spaces/nam194/kokoroTTS-hf-live)**.
 
-The included interface provides generation and streaming workflows, precise voice controls, waveform playback and downloads, live API information, and runtime/GPU monitoring.
-
-<p align="center">
-  <a href="https://nam194-kokorotts-hf.static.hf.space/">
-    <img src="assets/ui.webp" alt="KokoroTTS-HF browser interface with text generation and audio controls">
-  </a>
-</p>
+The included interface provides generation and streaming workflows, precise voice controls, waveform playback and downloads, live API information, and runtime/GPU monitoring —
+[try it live](https://huggingface.co/spaces/nam194/kokoroTTS-hf-live) or run it locally below.
 
 ---
 

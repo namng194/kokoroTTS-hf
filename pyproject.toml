@@ -53,9 +53,8 @@ artifacts = [
 ]
 
 [tool.hatch.build.targets.wheel.force-include]
-"assets/kokoro_favicon.webp" = "assets/kokoro_favicon.webp"
-"assets/kokoro_logo_horizontal.webp" = "assets/kokoro_logo_horizontal.webp"
-"assets/hangrylabs_logo_horizontal.webp" = "assets/hangrylabs_logo_horizontal.webp"
+"assets/kokorotts_hf_logo.svg" = "assets/kokorotts_hf_logo.svg"
+"assets/kokorotts_hf_favicon.svg" = "assets/kokorotts_hf_favicon.svg"
 
 [project.urls]
 Homepage = "https://github.com/namng194/kokoroTTS-hf"
