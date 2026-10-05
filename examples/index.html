@@ -107,8 +107,8 @@ audio.studio{width:100%;margin-top:14px;display:none}
 .note{font-size:13px;color:var(--muted);line-height:1.7;margin:12px 0 0}
 details.backend{margin-top:20px;border:1px dashed #d6cdb8;border-radius:12px;padding:12px 16px;background:#faf8f3}
 details.backend summary{cursor:pointer;font-weight:600;font-size:13.5px;color:#57534e}
-.backendrow{display:flex;gap:10px;margin-top:12px}
-.backendrow input{flex:1}
+.backendrow{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+.backendrow input{flex:1;min-width:200px}
 .backendrow .btn{white-space:nowrap}
 /* voice wall */
 .filters{display:flex;gap:2px;flex-wrap:wrap;margin:18px 0 6px;border-bottom:1px solid var(--line-soft);padding-bottom:4px}
@@ -222,13 +222,16 @@ footer.end{text-align:center;color:var(--faint);font-size:12.5px;margin:48px 0 8
       </div>
     </div>
 
-    <details class="backend">
+    <details class="backend" id="beDetails">
       <summary data-i18n="beTitle">Backend CPU tự host (tùy chọn — cho 42 giọng phi-Anh live)</summary>
       <p class="note" data-i18n="beNote">Chạy Docker CPU: docker run -p 7860:7860 (image local), rồi dán địa chỉ vào đây. Trống = dùng mẫu có sẵn.</p>
       <div class="backendrow">
         <input type="text" id="beUrl" placeholder="http://localhost:7860">
         <button class="btn" id="beSave" type="button" data-i18n="beSave">Lưu</button>
+        <button class="btn" id="beOff" type="button" data-i18n="beOffBtn">Ngắt kết nối</button>
+        <button class="btn" id="beCopy" type="button" data-i18n="beCopyBtn">Chép lệnh docker</button>
       </div>
+      <p class="note" id="beState"></p>
     </details>
     </aside>
     </div>
@@ -267,7 +270,13 @@ const T = () => (window.KokoroLang === "en"
       dlOnce: "Downloading Kokoro-82M q8/wasm (CPU) — once, then cached…", sampleOf: "Sample-only voice — playing its studio sample.",
       beLive: " voice renders LIVE via your CPU backend.", pick2: "Pick two different voices to mix.",
       enFam: "Backend is fetching voice models (first time takes minutes)…",
-      beOk: "Backend OK — serving ", voicesU: " voices.", beBad: "Backend unreachable: " }
+      beOk: "Backend OK — serving ", voicesU: " voices.", beBad: "Backend unreachable: ",
+      needSetup: "This voice needs the CPU backend. Run the docker command below, press Save, then Generate again.",
+      setupShort: "Needs CPU backend — see guide below.",
+      beProbing: "Looking for local CPU backend…",
+      beNone: "No backend found — 42 voices need it. Run the docker command below, then press Save.",
+      beOffMsg: "Backend disconnected.",
+      copiedMsg: "Docker command copied — paste it in a terminal." }
   : { ready: "Sẵn sàng — chọn giọng rồi bấm Tạo tiếng.", needText: "Hãy nhập văn bản trước.",
       loading: "Model đang tải — phát mẫu của giọng này trước nhé.", noEngine: "Không tải được engine. Kiểm tra mạng/adblock — mẫu vẫn nghe được.",
       synth: "Đang tổng hợp trên CPU của bạn…", done: "Xong trên CPU của bạn — ", viaBe: " qua backend CPU", mixA: "Pha 1/2 — dựng ", mixB: "Pha 2/2 — dựng ",
@@ -276,16 +285,40 @@ const T = () => (window.KokoroLang === "en"
       dlOnce: "Đang tải Kokoro-82M q8/wasm (CPU) — 1 lần rồi cache…", sampleOf: "Giọng mẫu — đang phát bản studio có sẵn.",
       beLive: " giọng này chạy LIVE qua backend CPU của bạn.", pick2: "Hãy chọn 2 giọng khác nhau để pha.",
       enFam: "Backend đang tải model giọng (lần đầu mất vài phút)…",
-      beOk: "Backend OK — phục vụ ", voicesU: " giọng.", beBad: "Không nối được backend: " });
+      beOk: "Backend OK — phục vụ ", voicesU: " giọng.", beBad: "Không nối được backend: ",
+      needSetup: "Giọng này cần backend CPU. Chạy lệnh docker bên dưới, bấm Lưu, rồi bấm Tạo tiếng lại.",
+      setupShort: "Cần backend CPU — xem hướng dẫn bên dưới.",
+      beProbing: "Đang tìm backend CPU local…",
+      beNone: "Chưa thấy backend — 42 giọng cần nó. Chạy lệnh docker bên dưới rồi bấm Lưu.",
+      beOffMsg: "Đã ngắt backend.",
+      copiedMsg: "Đã chép lệnh docker — dán vào terminal để chạy." });
 
 let KokoroTTS = null, tts = null, actx = null, mode = "single";
 const textEl=$("stText"), vA=$("vA"), vB=$("vB"), vBW=$("vBWrap"), mixRow=$("mixRow"),
   mS=$("mSingle"), mM=$("mMix"), spd=$("spdR"), spdV=$("spdV"), mix=$("mixR"), mixV=$("mixV"),
   pre=$("preset"), go=$("go"), st=$("st"), prog=$("prog"), bar=prog.querySelector("div"),
   player=$("player"), dl=$("dl"), cnt=$("stCount"), pill=$("pillEngine"),
-  vNote=$("vNote"), beUrl=$("beUrl");
-beUrl.value = localStorage.getItem("kokorotts_hf_backend") || "";
-const be = () => (localStorage.getItem("kokorotts_hf_backend") || "").replace(/\/+$/,"");
+  vNote=$("vNote"), beUrl=$("beUrl"), beState=$("beState");
+const DOCKER_CMD = "docker run -d --name kokoro-cpu -p 7860:7860 kokorotts-hf:cpu";
+const BE_OFF = "__off__";
+function storedBe(){ return localStorage.getItem("kokorotts_hf_backend") || ""; }
+if(storedBe() !== BE_OFF) beUrl.value = storedBe();
+const be = () => {
+  const s = storedBe();
+  if(!s || s === BE_OFF) return "";
+  return s.replace(/\/+$/,"");
+};
+async function probe(url, ms){
+  const ctl = new AbortController();
+  const to = setTimeout(()=>ctl.abort(), ms||6000);
+  try{
+    const r = await fetch(url.replace(/\/+$/,"") + "/tts/voices", {signal:ctl.signal});
+    if(!r.ok) return null;
+    const j = await r.json();
+    return (j && j.voices) ? j.voices.length : 0;
+  }catch(e){ return null; }finally{ clearTimeout(to); }
+}
+function showBeState(msg){ if(beState) beState.textContent = msg; }
 
 window.addEventListener("error", (ev) => {
   const el = $("st"); if (el) el.textContent = "Lỗi trang: " + ((ev && ev.message) || "?") + " — các mẫu bên dưới vẫn nghe được.";
@@ -301,17 +334,39 @@ mix.addEventListener("input", () => { mixV.textContent = Number(mix.value).toFix
 pre.addEventListener("change", () => { textEl.value = pre.value; updCount(); });
 $("beSave").addEventListener("click", async () => {
   const t = T(), h = beUrl.value.trim().replace(/\/+$/,"");
+  if(!h){
+    // Empty = auto-detect local backend.
+    say(t.beProbing); showBeState(t.beProbing);
+    const n = await probe("http://localhost:7860", 8000);
+    if(n == null){ showBeState(t.beNone); say(t.beNone); }
+    else{
+      localStorage.setItem("kokorotts_hf_backend", "http://localhost:7860");
+      beUrl.value = "http://localhost:7860";
+      showBeState(t.beOk + n + t.voicesU); say(t.beOk + n + t.voicesU);
+    }
+    paintNote(); return;
+  }
   localStorage.setItem("kokorotts_hf_backend", beUrl.value.trim());
   paintNote();
-  if(!h){ say(t.beBad + "—"); return; }
-  say(t.synth + " (ping backend…)…");
-  try{
-    const r = await fetch(h + "/tts/voices");
-    if(!r.ok) throw new Error("HTTP " + r.status);
-    const j = await r.json();
-    const n = j && j.voices ? j.voices.length : "?";
-    say(t.beOk + n + t.voicesU);
-  }catch(err){ say(t.beBad + ((err && err.message) || err)); }
+  say(t.beProbing);
+  const n = await probe(h, 8000);
+  if(n == null){ showBeState(t.beBad + h); say(t.beBad + h); }
+  else{ showBeState(t.beOk + n + t.voicesU); say(t.beOk + n + t.voicesU); }
+  paintNote();
+});
+$("beOff").addEventListener("click", () => {
+  localStorage.setItem("kokorotts_hf_backend", BE_OFF);
+  beUrl.value = ""; showBeState(T().beOffMsg); say(T().beOffMsg); paintNote();
+});
+$("beCopy").addEventListener("click", async () => {
+  try{ await navigator.clipboard.writeText(DOCKER_CMD); }
+  catch(e){
+    const ta = document.createElement("textarea");
+    ta.value = DOCKER_CMD; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); }catch(_){}
+    ta.remove();
+  }
+  say(T().copiedMsg + " " + DOCKER_CMD);
 });
 function setMode(n){
   mode=n; mS.classList.toggle("on",n==="single"); mM.classList.toggle("on",n==="mix");
@@ -346,11 +401,10 @@ function paintNote(){
   if(live){
     vNote.textContent = window.KokoroLang==="en" ? "Renders live on your CPU." : "Dựng live trên CPU của bạn.";
   } else {
-    const off = (mode==="single"?a:b);
-    vNote.textContent = h ? (off+t.beLive) : t.sampleOf;
+    vNote.textContent = h ? (a+t.beLive) : t.setupShort;
   }
   // One button for every voice: it always says Generate; the engine
-  // router below picks live CPU, backend CPU, or instant sample.
+  // router below picks live CPU or backend CPU — never a silent sample.
   if(tts && !go.disabled) go.textContent = t.gen;
 }
 window.KokoroUseVoice = function(id){
@@ -458,12 +512,6 @@ async function viaBackend(text,a,b,mixW,speed){
   const label = mode==="mix" ? (t.done+"A+B"+t.viaBe) : (t.done+a+t.viaBe);
   return {blob:res.blob, label:label+" "+short(text)};
 }
-function playSample(id){
-  const e=(window.VOICE_EXAMPLES||[]).find(v=>v.voice===id);
-  if(!e)throw new Error("no sample: "+id);
-  player.src=e.file; player.style.display="block"; player.play().catch(()=>{});
-  dl.style.display="none"; phide(); say(T().sampleOf+" ("+id+")");
-}
 function showBlob(blob,label,rate,samples){
   if(player.src&&player.src.startsWith("blob:"))URL.revokeObjectURL(player.src);
   const url=URL.createObjectURL(blob);
@@ -488,16 +536,22 @@ go.addEventListener("click", async ()=>{
       say(t.dlOnce + " (đang thử lại…)");
       await loadEngine();
       go.disabled=true;
-      if(!tts){ playSample(!isLive(a)?a:b); go.disabled=false; return; }
+      if(!tts){ phide(); say(t.noEngine); go.disabled=false; paintNote(); return; }
     }
-    if(!allLive && be()){
+    if(!allLive){
+      const h = be();
+      if(!h){
+        // Honest stop: this voice cannot synthesize without the CPU
+        // backend. Never play a silent sample instead.
+        phide();
+        $("beDetails").open = true;
+        say(t.needSetup);
+        $("beDetails").scrollIntoView({behavior:"smooth", block:"nearest"});
+        go.disabled=false; paintNote(); return;
+      }
       say(t.synth+"(backend CPU)…"); busyOn();
       const {blob,label}=await viaBackend(text,a,b,mixW,speed);
-      showBlob(blob,label); go.disabled=false; return;
-    }
-    if(!allLive || !tts){
-      if(!tts&&allLive)say(t.loading);
-      playSample(!isLive(a)?a:b); go.disabled=false; return;
+      showBlob(blob,label); go.disabled=false; paintNote(); return;
     }
     if(mode==="mix"&&a===b)throw new Error(t.pick2);
     say(t.synth); pset(0.3);
@@ -518,6 +572,27 @@ go.addEventListener("click", async ()=>{
 
 fillVoices();
 loadEngine();
+// Auto-detect a local CPU backend so all 70 voices synthesize out of the
+// box when docker is running. Explicit disconnect (__off__) is respected.
+(async () => {
+  if(storedBe() === BE_OFF){ showBeState(T().beOffMsg); paintNote(); return; }
+  const cands = [];
+  if(storedBe()) cands.push(storedBe());
+  cands.push("http://localhost:7860");
+  showBeState(T().beProbing);
+  for(const u of cands){
+    const n = await probe(u, 6000);
+    if(n != null){
+      localStorage.setItem("kokorotts_hf_backend", u);
+      beUrl.value = u;
+      showBeState(T().beOk + n + T().voicesU);
+      paintNote();
+      return;
+    }
+  }
+  showBeState(T().beNone);
+  paintNote();
+})();
 </script>
 </body>
 </html>
