@@ -14,6 +14,25 @@ python scripts/deploy_hf_space.py --flavour gradio \
   --space-id YOU/kokoroTTS-hf-live --hardware zero-a10g --torch cuda
 ```
 
+Free ZeroGPU quota is limited (daily, shared by all your spaces): keep test
+utterances short and prefer `--torch cuda` only where `@spaces.GPU` runs.
+The demo exposes both **Single** and **Blend** modes; Blend calls the
+`POST /tts/blend` endpoint below.
+
+### Voice blending (KokoroTTS-HF exclusive)
+
+Mix two same-family voices into a new synthetic speaker. `blend` is the
+weight of `voice_b` (`0.0` = pure `voice`, `1.0` = pure `voice_b`):
+
+```bash
+curl -X POST "https://YOU-kokorotts-hf-live.hf.space/tts/blend" \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Two voices become one.","voice":"af_heart","voice_b":"af_bella","blend":0.5}' \
+  -o blend.wav
+```
+
+Cross-family pairs return HTTP 400 (different weight spaces cannot mix).
+
 > Pricing reality (Oct 2026): Gradio/Docker Spaces on hosted CPU now require
 > a PRO subscription (creation fails with 402 otherwise). **ZeroGPU
 > (`zero-a10g`) still works on free accounts** and is the recommended hosted
