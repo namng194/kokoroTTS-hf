@@ -355,9 +355,17 @@ async function loadEngine(){
   }
 }
 async function one(text,voice,speed,cb){
-  if(text.length<=400){ const a=await tts.generate(text,{voice,speed}); if(cb)cb(1,1); return {s:a.data,r:a.sampling_rate||24000}; }
+  const norm = (a) => ({ s: (a && (a.audio || a.data)) || null, r: (a && a.sampling_rate) || 24000 });
+  if(text.length<=400){
+    const n = norm(await tts.generate(text,{voice,speed}));
+    if(!n.s) throw new Error("engine returned no audio data");
+    if(cb)cb(1,1); return n;
+  }
   const ss=sents(text),ch=[]; let r=24000,i=0;
-  for await (const {audio} of tts.stream(ss.join(" "),{voice,speed})){ ch.push(audio.data); r=audio.sampling_rate||r; i++; if(cb)cb(i,ss.length); }
+  for await (const {audio} of tts.stream(ss.join(" "),{voice,speed})){
+    const n = norm(audio); if(!n.s) continue;
+    ch.push(n.s); r=n.r; i++; if(cb)cb(i,ss.length);
+  }
   if(!ch.length)throw new Error("empty stream");
   return {s:cat(ch),r};
 }
