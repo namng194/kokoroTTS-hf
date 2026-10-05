@@ -1,798 +1,407 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>KokoroTTS-HF Voice Gallery</title>
-    <link rel="icon" type="image/svg+xml" href="../assets/kokorotts_hf_favicon.svg">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-      html,
-      body {
-        margin: 0;
-        min-height: 100%;
-        overflow-x: hidden;
-        background: #000;
-        color: #ffb076;
-        scroll-behavior: smooth;
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KokoroTTS-HF Studio — text thành giọng nói ngay trên CPU</title>
+<link rel="icon" type="image/svg+xml" href="../assets/kokorotts_hf_favicon.svg">
+<style>
+:root{
+  --bg:#0a0605; --panel:rgba(26,15,8,.94); --panel2:rgba(38,21,10,.94);
+  --line:rgba(255,107,0,.30); --line-soft:rgba(255,107,0,.16);
+  --accent:#ff6b00; --accent2:#ff9b45; --text:#ffe9d6; --muted:#d09a6c; --dim:#9c6b45;
+  --radius:16px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; min-height:100vh; color:var(--text);
+  font-family:"Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;
+  background:
+    radial-gradient(900px 480px at 12% -80px, rgba(255,107,0,.16), transparent 60%),
+    radial-gradient(760px 420px at 88% 8%, rgba(255,60,0,.10), transparent 60%),
+    radial-gradient(1000px 700px at 50% 110%, rgba(255,107,0,.08), transparent 60%),
+    var(--bg);
+}
+a{color:var(--accent2)}
+.wrap{max-width:1060px;margin:0 auto;padding:20px 18px 60px}
+/* top bar */
+.top{display:flex;align-items:center;gap:14px;padding:12px 16px;border:1px solid var(--line-soft);
+  border-radius:var(--radius);background:rgba(16,9,5,.85);flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit;margin-right:auto}
+.brand img{width:44px;height:44px;border-radius:10px;border:1px solid var(--line);box-shadow:0 0 18px rgba(255,107,0,.25)}
+.brand b{font-size:19px;letter-spacing:.2px}
+.brand small{display:block;color:var(--muted);font-size:12px;font-weight:400}
+.btn{display:inline-block;border:1px solid var(--line);background:rgba(255,107,0,.10);color:var(--text);
+  border-radius:999px;padding:9px 18px;font-size:14px;font-weight:700;text-decoration:none;cursor:pointer;font-family:inherit}
+.btn:hover{background:rgba(255,107,0,.24)}
+.btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#22100a;border:none;
+  box-shadow:0 0 22px rgba(255,107,0,.35)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn:disabled{opacity:.5;cursor:wait}
+.btn.on{background:rgba(255,107,0,.30);border-color:var(--accent)}
+/* hero */
+.hero{padding:38px 6px 8px}
+.hero h1{margin:0;font-size:clamp(30px,5vw,50px);line-height:1.05;letter-spacing:-.5px;
+  color:var(--accent);text-shadow:0 0 24px rgba(255,107,0,.55),0 0 60px rgba(255,60,0,.25)}
+.hero p{margin:14px 0 0;max-width:720px;color:var(--text);font-size:17px;line-height:1.7}
+.hero p span.en{display:block;color:var(--muted);font-size:14px;margin-top:4px}
+.pills{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.pill{border:1px solid var(--line);background:rgba(255,107,0,.10);border-radius:999px;
+  padding:7px 15px;font-size:13.5px;font-weight:600;color:var(--text)}
+.pill b{color:var(--accent2)}
+/* cards */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:22px;margin-top:26px;box-shadow:0 0 34px rgba(255,107,0,.10)}
+.card.glow{border-color:rgba(255,107,0,.55);box-shadow:0 0 44px rgba(255,107,0,.20)}
+.card h2{margin:0 0 4px;font-size:23px;color:var(--accent);text-shadow:0 0 16px rgba(255,107,0,.4)}
+.card .sub{margin:0 0 6px;color:var(--muted);font-size:14px;line-height:1.65}
+label.fl{display:block;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent2);margin:16px 0 7px}
+textarea,select,input[type=text]{width:100%;border-radius:12px;border:1px solid var(--line);
+  background:#160c06;color:var(--text);padding:12px 14px;font-size:15px;font-family:inherit;line-height:1.6}
+textarea{min-height:120px;resize:vertical}
+textarea:focus,select:focus,input[type=text]:focus{outline:2px solid rgba(255,107,0,.65);border-color:var(--accent)}
+select optgroup{color:#000}
+input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+@media(max-width:720px){.grid2{grid-template-columns:1fr}}
+.seg{display:flex;gap:10px}
+.seg button{flex:1}
+.rowline{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.count{font-size:12.5px;color:var(--dim)}
+#go{width:100%;margin-top:20px;padding:15px;font-size:18px}
+.progress{height:9px;border-radius:99px;background:rgba(255,107,0,.14);border:1px solid var(--line-soft);
+  margin-top:14px;overflow:hidden;display:none}
+.progress>div{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .15s}
+.status{min-height:24px;margin-top:10px;font-size:14.5px;color:var(--accent2);line-height:1.6}
+audio.studio{width:100%;margin-top:12px;display:none}
+.dlrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+#dl{display:none}
+.note{font-size:13.5px;color:var(--muted);line-height:1.7;margin:12px 0 0}
+details.backend{margin-top:16px;border:1px dashed var(--line);border-radius:12px;padding:10px 14px}
+details.backend summary{cursor:pointer;font-weight:700;font-size:14px;color:var(--accent2)}
+.backendrow{display:flex;gap:10px;margin-top:10px}
+.backendrow input{flex:1}
+/* voice wall */
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 4px}
+.filters .btn{padding:8px 15px;font-size:13px}
+.wall{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
+@media(max-width:900px){.wall{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.wall{grid-template-columns:1fr}}
+.vcard{background:var(--panel2);border:1px solid var(--line-soft);border-radius:14px;padding:15px;
+  transition:transform .15s,border-color .2s,box-shadow .2s}
+.vcard:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 0 22px rgba(255,107,0,.25)}
+.vcard .nm{font-size:16.5px;font-weight:800;color:var(--text)}
+.vcard .lg{font-size:12.5px;color:var(--muted);margin-top:2px}
+.vcard .id{display:inline-block;margin-top:8px;font-size:11.5px;font-family:Consolas,monospace;
+  border:1px solid var(--line-soft);border-radius:99px;padding:3px 10px;color:var(--dim)}
+.tag{display:inline-block;margin:8px 0 0 6px;font-size:11px;font-weight:800;border-radius:99px;padding:3px 10px;
+  text-transform:uppercase;letter-spacing:.06em}
+.tag.live{background:rgba(46,160,67,.18);border:1px solid rgba(46,160,67,.6);color:#7ee2a0}
+.tag.sample{background:rgba(255,107,0,.14);border:1px solid var(--line);color:var(--accent2)}
+.vcard audio{width:100%;margin-top:10px;height:34px}
+.vcard .use{width:100%;margin-top:10px;padding:9px;font-size:13px}
+footer.end{text-align:center;color:var(--dim);font-size:13px;margin:38px 0 8px;line-height:2}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <a class="brand" href="https://github.com/namng194/kokoroTTS-hf" target="_blank" rel="noopener noreferrer">
+      <img src="../assets/kokorotts_hf_logo.svg" alt="KokoroTTS-HF logo">
+      <span><b>KokoroTTS-HF Studio</b><small data-i18n="tagline">70 giọng đọc · 11 ngôn ngữ · CPU</small></span>
+    </a>
+    <button class="btn" id="langToggle" type="button">EN</button>
+    <a class="btn" href="https://github.com/namng194/kokoroTTS-hf" target="_blank" rel="noopener noreferrer">GitHub</a>
+  </div>
+
+  <div class="hero">
+    <h1 data-i18n="hero">Nói bằng trình duyệt của bạn</h1>
+    <p><span data-i18n="heroSub">Gõ chữ, chọn 1 trong 70 giọng, bấm Tạo tiếng — 28 giọng Anh tổng hợp trực tiếp trên máy bạn (CPU), các giọng còn lại phát mẫu studio tức thì. Không server, không quota.</span>
+    <span class="en" data-i18n="heroSubEn">Type text, pick any of 70 voices, press Generate — 28 English voices synthesize live on your CPU, the rest play studio samples instantly. No server, no quota.</span></p>
+    <div class="pills">
+      <span class="pill" id="pillEngine">engine: …</span>
+      <span class="pill"><b>70</b> <span data-i18n="pillVoices">giọng · 11 ngôn ngữ</span></span>
+      <span class="pill">CPU-only</span>
+      <span class="pill">WAV download</span>
+    </div>
+  </div>
+
+  <section class="card glow" id="studio">
+    <h2 data-i18n="studioTitle">Studio — tạo tiếng nói</h2>
+    <p class="sub" data-i18n="studioSub">28 giọng tiếng Anh chạy live 100% trên CPU máy bạn. Giọng khác cần backend CPU (tùy chọn bên dưới), nếu không sẽ phát mẫu có sẵn.</p>
+
+    <label class="fl" for="stText"><span data-i18n="textLabel">Văn bản</span></label>
+    <div class="rowline"><span></span><span class="count" id="stCount">0 / 2000</span></div>
+    <textarea id="stText" maxlength="2000">Xin chào từ KokoroTTS-HF Studio. Giọng nói này được tạo ngay trên máy của bạn.</textarea>
+
+    <label class="fl"><span data-i18n="modeLabel">Chế độ</span></label>
+    <div class="seg">
+      <button class="btn on" id="mSingle" type="button" data-i18n="mSingle">1 giọng</button>
+      <button class="btn" id="mMix" type="button" data-i18n="mMix">Pha trộn A + B</button>
+    </div>
+
+    <div class="grid2">
+      <div>
+        <label class="fl" for="vA">Voice A — <span data-i18n="all70">cả 70 giọng</span></label>
+        <select id="vA"><option>…</option></select>
+      </div>
+      <div id="vBWrap" style="display:none">
+        <label class="fl" for="vB">Voice B</label>
+        <select id="vB"><option>…</option></select>
+      </div>
+    </div>
+
+    <div class="grid2" id="mixRow" style="display:none">
+      <div>
+        <label class="fl" for="mixR"><span data-i18n="mixLabel">Tỉ lệ giọng B</span> (<span id="mixV">0.50</span>)</label>
+        <input type="range" id="mixR" min="0" max="1" step="0.05" value="0.5">
+      </div>
+      <div>
+        <label class="fl">&nbsp;</label>
+        <p class="note" data-i18n="mixNote">Mix dựng A và B riêng rồi hòa âm thanh. Qua backend thì blend đúng embedding.</p>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div>
+        <label class="fl" for="spdR"><span data-i18n="spdLabel">Tốc độ</span>: <span id="spdV">1.00</span>x</label>
+        <input type="range" id="spdR" min="0.5" max="2" step="0.05" value="1">
+      </div>
+      <div>
+        <label class="fl" for="preset" data-i18n="presetLabel">Câu mẫu nhanh</label>
+        <select id="preset">
+          <option value="Xin chào từ KokoroTTS-HF Studio. Giọng nói này được tạo ngay trên máy của bạn.">Chào (VI)</option>
+          <option value="Hello from KokoroTTS-HF Studio. This speech is generated entirely inside your browser.">Intro (EN)</option>
+          <option value="Life is like a box of chocolates. You never know what you're gonna get.">Quote (EN)</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="btn primary" id="go" disabled>…</button>
+    <div class="progress" id="prog"><div></div></div>
+    <div class="status" id="st">…</div>
+    <audio class="studio" id="player" controls></audio>
+    <div class="dlrow"><a class="btn" id="dl" href="#" download="kokorotts-hf.wav">WAV ↓</a></div>
+    <p class="note" id="vNote"></p>
+
+    <details class="backend">
+      <summary data-i18n="beTitle">Backend CPU tự host (tùy chọn — cho 42 giọng phi-Anh live)</summary>
+      <p class="note" data-i18n="beNote">Chạy Docker CPU: docker run -p 7860:7860 (image local), rồi dán địa chỉ vào đây. Trống = dùng mẫu có sẵn.</p>
+      <div class="backendrow">
+        <input type="text" id="beUrl" placeholder="http://localhost:7860">
+        <button class="btn" id="beSave" type="button" data-i18n="beSave">Lưu</button>
+      </div>
+    </details>
+  </section>
+
+  <section class="card" id="voices">
+    <h2 data-i18n="wallTitle">Chọn giọng — 70 voices</h2>
+    <p class="sub" data-i18n="wallSub">Bấm ▶ nghe mẫu, bấm “Dùng giọng này” để đưa lên Studio. Thẻ xanh lá = tổng hợp live trên CPU.</p>
+    <div class="filters" id="filters"></div>
+    <div class="wall" id="wall"></div>
+  </section>
+
+  <footer class="end">
+    KokoroTTS-HF Studio · 70 voices · 11 languages · CPU-only ·
+    <a href="https://github.com/namng194/kokoroTTS-hf" target="_blank" rel="noopener noreferrer">GitHub</a>
+  </footer>
+
+</div>
+<script src="voices.js"></script>
+<script src="player.js"></script>
+<script type="module">
+const ENGINE_URL = "https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.web.js";
+const MODEL_ID = "onnx-community/Kokoro-82M-v1.0-ONNX";
+const LIVE_RE = /^(af_|am_|bf_|bm_)/;
+const isLive = (id) => LIVE_RE.test(id || "");
+const $ = (id) => document.getElementById(id);
+const T = () => (window.KokoroLang === "en"
+  ? { ready: "Ready — pick a voice and press Generate.", needText: "Please enter some text first.",
+      loading: "Model still loading — playing its sample meanwhile.", noEngine: "Engine failed to load. Check network/adblock — samples still play.",
+      synth: "Synthesizing on your CPU…", done: "Done on your CPU — ", viaBe: " via CPU backend", mixA: "Mix 1/2 — rendering ", mixB: "Mix 2/2 — rendering ",
+      fail: "Synthesis failed: ", gen: "Generate speech", play: "Play sample", load: "Loading model (CPU)…",
+      dlOnce: "Downloading Kokoro-82M q8/wasm (CPU) — once, then cached…", sampleOf: "Sample-only voice — playing its studio sample.",
+      beLive: " voice renders LIVE via your CPU backend.", pick2: "Pick two different voices to mix." }
+  : { ready: "Sẵn sàng — chọn giọng rồi bấm Tạo tiếng.", needText: "Hãy nhập văn bản trước.",
+      loading: "Model đang tải — phát mẫu của giọng này trước nhé.", noEngine: "Không tải được engine. Kiểm tra mạng/adblock — mẫu vẫn nghe được.",
+      synth: "Đang tổng hợp trên CPU của bạn…", done: "Xong trên CPU của bạn — ", viaBe: " qua backend CPU", mixA: "Pha 1/2 — dựng ", mixB: "Pha 2/2 — dựng ",
+      fail: "Lỗi tổng hợp: ", gen: "Tạo tiếng", play: "Nghe mẫu", load: "Đang tải model (CPU)…",
+      dlOnce: "Đang tải Kokoro-82M q8/wasm (CPU) — 1 lần rồi cache…", sampleOf: "Giọng mẫu — đang phát bản studio có sẵn.",
+      beLive: " giọng này chạy LIVE qua backend CPU của bạn.", pick2: "Hãy chọn 2 giọng khác nhau để pha." });
+
+let KokoroTTS = null, tts = null, actx = null, mode = "single";
+const textEl=$("stText"), vA=$("vA"), vB=$("vB"), vBW=$("vBWrap"), mixRow=$("mixRow"),
+  mS=$("mSingle"), mM=$("mMix"), spd=$("spdR"), spdV=$("spdV"), mix=$("mixR"), mixV=$("mixV"),
+  pre=$("preset"), go=$("go"), st=$("st"), prog=$("prog"), bar=prog.querySelector("div"),
+  player=$("player"), dl=$("dl"), cnt=$("stCount"), pill=$("pillEngine"),
+  vNote=$("vNote"), beUrl=$("beUrl");
+beUrl.value = localStorage.getItem("kokorotts_hf_backend") || "";
+const be = () => (localStorage.getItem("kokorotts_hf_backend") || "").replace(/\/+$/,"");
+
+window.addEventListener("error", (ev) => {
+  const el = $("st"); if (el) el.textContent = "Lỗi trang: " + ((ev && ev.message) || "?") + " — các mẫu bên dưới vẫn nghe được.";
+});
+const say = (m) => { st.textContent = m; };
+const pset = (p) => { prog.style.display="block"; bar.style.width = Math.round(Math.max(0,Math.min(1,p))*100)+"%"; };
+const phide = () => { prog.style.display="none"; bar.style.width="0%"; };
+const updCount = () => { cnt.textContent = (textEl.value||"").length + " / 2000"; };
+textEl.addEventListener("input", updCount); updCount();
+spd.addEventListener("input", () => { spdV.textContent = Number(spd.value).toFixed(2); });
+mix.addEventListener("input", () => { mixV.textContent = Number(mix.value).toFixed(2); });
+pre.addEventListener("change", () => { textEl.value = pre.value; updCount(); });
+$("beSave").addEventListener("click", () => {
+  localStorage.setItem("kokorotts_hf_backend", beUrl.value.trim());
+  const tr = window.KokoroTr || ((k) => k);
+  say(be() ? ("Backend CPU: " + be()) : tr("beEmpty"));
+  paintNote();
+});
+function setMode(n){
+  mode=n; mS.classList.toggle("on",n==="single"); mM.classList.toggle("on",n==="mix");
+  const m = n==="mix"; vBW.style.display=m?"block":"none"; mixRow.style.display=m?"grid":"none"; paintNote();
+}
+mS.addEventListener("click",()=>setMode("single")); mM.addEventListener("click",()=>setMode("mix"));
+
+function groups(){
+  const g={}; for (const v of (window.VOICE_EXAMPLES||[])) (g[v.language]=g[v.language]||[]).push(v);
+  return g;
+}
+function fillVoices(){
+  const g=groups();
+  for (const [sel,def] of [[vA,"af_heart"],[vB,"af_bella"]]){
+    sel.innerHTML="";
+    for (const lang of Object.keys(g).sort()){
+      const o=document.createElement("optgroup"); o.label=lang;
+      for (const v of g[lang]){
+        const e=document.createElement("option"); e.value=v.voice;
+        e.textContent=v.voice+" — "+v.name+(isLive(v.voice)?" ● live CPU":" ○ mẫu");
+        if(v.voice===def)e.selected=true; o.appendChild(e);
       }
+      sel.appendChild(o);
+    }
+    sel.addEventListener("change",paintNote);
+  }
+  paintNote();
+}
+function paintNote(){
+  const t=T(), a=vA.value, b=vB.value, h=be();
+  const live = isLive(a)&&(mode==="single"||isLive(b));
+  if(live){ vNote.textContent = window.KokoroLang==="en" ? "Renders live on your CPU." : "Dựng live trên CPU của bạn."; return; }
+  const off = (mode==="single"?a:b);
+  vNote.textContent = h ? (off+t.beLive) : t.sampleOf;
+}
+window.KokoroUseVoice = function(id){
+  if(!id)return; vA.value=id; setMode("single");
+  $("studio").scrollIntoView({behavior:"smooth"});
+  const t=T();
+  say(isLive(id) ? ("✓ " + id) : (t.sampleOf + " (" + id + ")" + (be() ? t.beLive : "")));
+};
+window.KokoroRefreshTexts = function(){ go.textContent = tts?T().gen:(go.textContent||T().load); paintNote(); };
 
-      canvas {
-        position: fixed;
-        inset: 0;
-        z-index: 0;
-        width: 100%;
-        height: 100%;
-      }
+function wav(samples,rate){
+  const b=new ArrayBuffer(44+samples.length*2), d=new DataView(b);
+  const ws=(o,s)=>{for(let i=0;i<s.length;i++)d.setUint8(o+i,s.charCodeAt(i));};
+  ws(0,"RIFF");d.setUint32(4,36+samples.length*2,true);ws(8,"WAVE");ws(12,"fmt ");
+  d.setUint32(16,16,true);d.setUint16(20,1,true);d.setUint16(22,1,true);d.setUint32(24,rate,true);
+  d.setUint32(28,rate*2,true);d.setUint16(32,2,true);d.setUint16(34,16,true);
+  ws(36,"data");d.setUint32(40,samples.length*2,true);
+  for(let i=0;i<samples.length;i++){const s=Math.max(-1,Math.min(1,samples[i]));d.setInt16(44+i*2,s<0?s*0x8000:s*0x7fff,true);}
+  return new Blob([b],{type:"audio/wav"});
+}
+const cat=(ch)=>{let n=0;for(const c of ch)n+=c.length;const o=new Float32Array(n);let f=0;for(const c of ch){o.set(c,f);f+=c.length;}return o;};
+const sents=(t)=>{const p=t.replace(/\s+/g," ").match(/[^.!?]+[.!?]+["']?|\S[^.!?]*$/g);const o=(p||[t]).map(s=>s.trim()).filter(Boolean);return o.length?o:[t];};
 
-      .page-shell {
-        position: relative;
-        z-index: 10;
-        min-height: 100vh;
-        background: rgba(0, 0, 0, 0.42);
-      }
+async function loadEngine(){
+  const t0=T(); go.textContent=t0.load; say(t0.dlOnce); pset(0.02);
+  try{
+    const mod = await import(ENGINE_URL);
+    tts = await mod.KokoroTTS.from_pretrained(MODEL_ID,{dtype:"q8",device:"wasm",
+      progress_callback:(p)=>{ if(p&&p.progress!=null)pset(p.progress); else if(p&&p.status)say(p.status+" — "+(p.file||MODEL_ID)); }});
+    KokoroTTS = mod.KokoroTTS;
+    pill.textContent="engine: wasm CPU · q8 ✓";
+    phide(); go.disabled=false; go.textContent=T().gen; say(T().ready);
+  }catch(err){
+    console.error(err); phide(); go.disabled=false; go.textContent=T().play;
+    pill.textContent="engine: mẫu (offline?)";
+    say(T().noEngine+" ("+((err&&err.message)||err)+")");
+  }
+}
+async function one(text,voice,speed,cb){
+  if(text.length<=400){ const a=await tts.generate(text,{voice,speed}); if(cb)cb(1,1); return {s:a.data,r:a.sampling_rate||24000}; }
+  const ss=sents(text),ch=[]; let r=24000,i=0;
+  for await (const {audio} of tts.stream(ss.join(" "),{voice,speed})){ ch.push(audio.data); r=audio.sampling_rate||r; i++; if(cb)cb(i,ss.length); }
+  if(!ch.length)throw new Error("empty stream");
+  return {s:cat(ch),r};
+}
+async function viaBackend(text,a,b,mixW,speed){
+  const t=T(), h=be();
+  if(mode==="mix"){
+    if(a===b)throw new Error(t.pick2);
+    const r=await fetch(h+"/tts/blend",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({text,voice:a,voice_b:b,blend:mixW,speed,device:"cpu"})});
+    if(!r.ok)throw new Error("backend "+r.status);
+    return {blob:await r.blob(),label:t.done+"A+B"+t.viaBe};
+  }
+  const r=await fetch(h+"/tts/generate",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({text,voice:a,speed,device:"cpu",format:"wav"})});
+  if(!r.ok)throw new Error("backend "+r.status);
+  return {blob:await r.blob(),label:t.done+a+t.viaBe};
+}
+function playSample(id){
+  const e=(window.VOICE_EXAMPLES||[]).find(v=>v.voice===id);
+  if(!e)throw new Error("no sample: "+id);
+  player.src=e.file; player.style.display="block"; player.play().catch(()=>{});
+  dl.style.display="none"; say(T().sampleOf+" ("+id+")");
+}
+function showBlob(blob,label,rate,samples){
+  if(player.src&&player.src.startsWith("blob:"))URL.revokeObjectURL(player.src);
+  const url=URL.createObjectURL(blob);
+  player.src=url; player.style.display="block";
+  if(rate&&samples){
+    if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();
+    actx.resume().catch(()=>{});
+    const buf=actx.createBuffer(1,samples.length,rate); buf.getChannelData(0).set(samples);
+    const src=actx.createBufferSource(); src.buffer=buf; src.connect(actx.destination); src.start();
+  } else player.play().catch(()=>{});
+  dl.href=url; dl.style.display="inline-block"; phide(); say(label);
+}
+go.addEventListener("click", async ()=>{
+  const t=T(), text=(textEl.value||"").trim();
+  if(!text){say(t.needText);return;}
+  const a=vA.value,b=vB.value,speed=parseFloat(spd.value)||1,mixW=parseFloat(mix.value)||0.5;
+  const liveIds = mode==="single"?[a]:[a,b];
+  const allLive = liveIds.every(isLive);
+  go.disabled=true;
+  try{
+    if(!allLive && be()){
+      say(t.synth+"(backend CPU)…"); pset(0.5);
+      const {blob,label}=await viaBackend(text,a,b,mixW,speed);
+      showBlob(blob,label); go.disabled=false; return;
+    }
+    if(!allLive || !tts){
+      if(!tts&&allLive)say(t.loading);
+      playSample(!isLive(a)?a:b); go.disabled=false; return;
+    }
+    if(mode==="mix"&&a===b)throw new Error(t.pick2);
+    say(t.synth); pset(0.3);
+    let s,r;
+    if(mode==="single"){
+      ({s,r}=await one(text,a,speed,(i,n)=>{say(t.synth+" "+i+"/"+n);pset(0.2+0.7*i/n);}));
+      showBlob(wav(s,r),t.done+a+" — "+(s.length/r).toFixed(1)+"s",r,s);
+    }else{
+      say(t.mixA+a+"…"); const ra=await one(text,a,speed,null); pset(0.65);
+      say(t.mixB+b+"…"); const rb=await one(text,b,speed,null);
+      const n=Math.min(ra.s.length,rb.s.length),o=new Float32Array(n);
+      for(let i=0;i<n;i++)o[i]=(1-mixW)*ra.s[i]+mixW*rb.s[i];
+      showBlob(wav(o,ra.r),t.done+"A+B — "+(o.length/ra.r).toFixed(1)+"s",ra.r,o);
+    }
+  }catch(err){ console.error(err); phide(); say(t.fail+((err&&err.message)||err)); }
+  go.disabled=false;
+});
 
-      .page-shell::before {
-        background:
-          linear-gradient(180deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.82)),
-          url("../assets/kokorotts_hf_bg.svg") center top / cover no-repeat;
-        content: "";
-        inset: 0;
-        opacity: 0.2;
-        pointer-events: none;
-        position: fixed;
-        z-index: -1;
-      }
-
-      .brand-card {
-        background: rgba(20, 20, 20, 0.94);
-        border: 2px solid rgba(255, 107, 0, 0.3);
-        border-radius: 12px;
-        box-shadow: 0 0 28px rgba(255, 107, 0, 0.12);
-        cursor: pointer;
-        transition:
-          border-color 0.25s ease,
-          box-shadow 0.25s ease,
-          transform 0.25s ease;
-      }
-
-      .brand-card:hover {
-        border-color: #ff6b00;
-        box-shadow: 0 0 24px rgba(255, 107, 0, 0.34);
-        transform: translateY(-3px);
-      }
-
-      .brand-card:focus-visible {
-        border-color: #ff8a33;
-        box-shadow:
-          0 0 0 3px rgba(255, 107, 0, 0.28),
-          0 0 28px rgba(255, 107, 0, 0.42);
-        outline: none;
-      }
-
-      .brand-card.is-playing {
-        animation: cardPulse 1.4s ease-in-out infinite;
-        border-color: #ff6b00;
-      }
-
-      @keyframes cardPulse {
-        0%,
-        100% {
-          box-shadow:
-            0 0 18px rgba(255, 107, 0, 0.28),
-            0 0 42px rgba(255, 107, 0, 0.12);
-        }
-
-        50% {
-          box-shadow:
-            0 0 28px rgba(255, 107, 0, 0.5),
-            0 0 68px rgba(255, 107, 0, 0.2);
-        }
-      }
-
-      .brand-glow {
-        color: #ff6b00;
-        text-shadow:
-          0 0 20px rgba(255, 107, 0, 0.62),
-          0 0 48px rgba(255, 60, 0, 0.28);
-      }
-
-      .pill {
-        border: 1px solid rgba(255, 107, 0, 0.42);
-        background: rgba(255, 107, 0, 0.12);
-        border-radius: 999px;
-        color: #ffb076;
-      }
-
-      .language-filter {
-        align-items: center;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.55rem;
-        margin-bottom: 1rem;
-      }
-
-      .filter-button,
-      .language-button {
-        appearance: none;
-        border: 1px solid rgba(255, 107, 0, 0.42);
-        background: rgba(20, 20, 20, 0.84);
-        border-radius: 999px;
-        color: #ffb076;
-        cursor: pointer;
-        font-size: 0.86rem;
-        font-weight: 700;
-        line-height: 1;
-        padding: 0.68rem 0.9rem;
-        transition:
-          background 0.2s ease,
-          border-color 0.2s ease,
-          color 0.2s ease,
-          box-shadow 0.2s ease;
-      }
-
-      .filter-button:hover,
-      .filter-button:focus-visible,
-      .filter-button.is-active,
-      .language-button:hover,
-      .language-button:focus-visible,
-      .language-button.is-active {
-        background: rgba(255, 107, 0, 0.22);
-        border-color: #ff6b00;
-        box-shadow: 0 0 16px rgba(255, 107, 0, 0.18);
-        color: #ffc394;
-        outline: none;
-      }
-
-      .topbar {
-        align-items: flex-start;
-        background: rgba(10, 10, 10, 0.86);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 107, 0, 0.26);
-        border-radius: 12px;
-        display: flex;
-        gap: 0.85rem;
-        justify-content: space-between;
-        margin-bottom: 1.35rem;
-        padding: 0.85rem;
-      }
-
-      .brand-lockup {
-        align-items: flex-start;
-        color: inherit;
-        display: flex;
-        gap: 0.7rem;
-        min-width: 0;
-        padding: 0.1rem 0 0 0.1rem;
-        text-decoration: none;
-      }
-
-      .brand-logo {
-        border: 1px solid rgba(255, 107, 0, 0.36);
-        border-radius: 8px;
-        box-shadow: 0 0 20px rgba(255, 107, 0, 0.22);
-        height: 2.65rem;
-        object-fit: cover;
-        width: 2.65rem;
-      }
-
-      .brand-name {
-        color: #ffb076;
-        font-size: 1rem;
-        font-weight: 800;
-        line-height: 1.1;
-      }
-
-      .brand-subtitle {
-        color: #ff8a33;
-        font-size: 0.76rem;
-        font-weight: 600;
-        margin-top: 0.15rem;
-      }
-
-      .hero {
-        align-items: start;
-        display: grid;
-        gap: 2rem;
-        grid-template-columns: minmax(0, 1.08fr) minmax(280px, 0.72fr);
-      }
-
-      .hero-logo-panel {
-        align-items: flex-start;
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-end;
-      }
-
-      .hero-logo-link {
-        display: block;
-        margin-left: auto;
-        max-width: min(360px, 100%);
-        text-decoration: none;
-        width: 100%;
-      }
-
-      .hero-logo {
-        aspect-ratio: 1 / 1;
-        border: 2px solid rgba(255, 107, 0, 0.3);
-        border-radius: 18px;
-        box-shadow:
-          0 0 28px rgba(255, 107, 0, 0.22),
-          0 0 80px rgba(255, 60, 0, 0.14);
-        object-fit: cover;
-        width: 100%;
-      }
-
-      .hero-site-link {
-        align-self: flex-end;
-        animation: siteLinkPulse 2.4s ease-in-out infinite;
-        color: #ff9b45;
-        font-size: 0.78rem;
-        font-weight: 700;
-        letter-spacing: 0;
-        margin-top: 0.24rem;
-        text-align: center;
-        text-decoration: none;
-        text-shadow:
-          0 0 10px rgba(255, 107, 0, 0.5),
-          0 0 22px rgba(255, 107, 0, 0.22);
-        width: min(360px, 100%);
-      }
-
-      @keyframes siteLinkPulse {
-        0%,
-        100% {
-          opacity: 0.74;
-        }
-
-        50% {
-          opacity: 1;
-        }
-      }
-
-      .top-actions,
-      .top-links {
-        align-items: center;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.55rem;
-        justify-content: flex-end;
-      }
-
-      .volume-control {
-        align-items: center;
-        background: rgba(255, 107, 0, 0.1);
-        border: 1px solid rgba(255, 107, 0, 0.34);
-        border-radius: 999px;
-        display: flex;
-        gap: 0.55rem;
-        padding: 0.45rem 0.65rem;
-      }
-
-      .volume-button {
-        align-items: center;
-        appearance: none;
-        background: transparent;
-        border: 0;
-        color: #ffb076;
-        cursor: pointer;
-        display: inline-flex;
-        height: 2rem;
-        justify-content: center;
-        padding: 0;
-        width: 2rem;
-      }
-
-      .volume-button:hover,
-      .volume-button:focus-visible {
-        color: #ff6b00;
-        outline: none;
-      }
-
-      .volume-button svg {
-        display: block;
-        height: 1.55rem;
-        width: 1.55rem;
-      }
-
-      .volume-button svg path {
-        stroke: currentColor;
-      }
-
-      .volume-button svg[hidden],
-      audio {
-        display: none;
-      }
-
-      .volume-slider {
-        accent-color: #ff6b00;
-        cursor: pointer;
-        width: 4.5rem;
-      }
-
-      .player {
-        align-items: center;
-        display: grid;
-        gap: 0.75rem;
-        grid-template-columns: minmax(0, 1fr) auto;
-      }
-
-      .progress-button {
-        appearance: none;
-        background: transparent;
-        border: 0;
-        cursor: pointer;
-        min-width: 0;
-        padding: 0.75rem 0;
-        touch-action: none;
-        user-select: none;
-        width: 100%;
-      }
-
-      .progress-button:focus-visible {
-        outline: 2px solid rgba(255, 107, 0, 0.8);
-        outline-offset: 4px;
-      }
-
-      .progress-track {
-        align-items: center;
-        background: rgba(255, 107, 0, 0.16);
-        border: 1px solid rgba(255, 107, 0, 0.3);
-        border-radius: 999px;
-        box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.5);
-        display: flex;
-        height: 0.56rem;
-        overflow: visible;
-        position: relative;
-        width: 100%;
-      }
-
-      .progress-fill {
-        background: linear-gradient(90deg, #ff6b00, #ff9b45);
-        border-radius: inherit;
-        box-shadow: 0 0 14px rgba(255, 107, 0, 0.55);
-        height: 100%;
-        left: 0;
-        position: absolute;
-        top: 0;
-        transition: width 0.08s linear;
-        width: 0;
-      }
-
-      .progress-knob {
-        background: #ff6b00;
-        border: 2px solid #ffc08a;
-        border-radius: 999px;
-        box-shadow:
-          0 0 8px rgba(255, 107, 0, 0.7),
-          0 0 16px rgba(255, 107, 0, 0.28);
-        height: 1rem;
-        left: 0;
-        position: absolute;
-        top: 50%;
-        transform: translate(-50%, -50%);
-        transition: left 0.08s linear;
-        width: 1rem;
-        z-index: 2;
-      }
-
-      .duration {
-        color: #ffb076;
-        font-family: "Courier New", monospace;
-        font-size: 0.78rem;
-        min-width: 4.4rem;
-        text-align: right;
-      }
-
-      .studio-field label { display: block; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #ff8a33; margin: 0 0 0.4rem; }
-      .studio-field textarea, .studio-field select { width: 100%; border-radius: 10px; border: 1px solid rgba(255,107,0,0.35); background: #120a06; color: #ffe4c7; padding: 0.75rem; font-size: 0.95rem; font-family: inherit; }
-      .studio-field textarea:focus, .studio-field select:focus { outline: 2px solid rgba(255,107,0,0.7); outline-offset: 1px; border-color: #ff6b00; }
-      .studio-field textarea { min-height: 120px; resize: vertical; line-height: 1.6; }
-      .studio-field input[type="range"] { width: 100%; accent-color: #ff6b00; cursor: pointer; }
-      .go { width: 100%; padding: 0.9rem; font-size: 1.05rem; font-weight: 800; border: none; border-radius: 12px; cursor: pointer; color: #1a0d00; background: linear-gradient(90deg, #ff6b00, #ff9b45); box-shadow: 0 0 24px rgba(255,107,0,0.35); }
-      .go:disabled { opacity: 0.5; cursor: wait; }
-      #studioStatus { min-height: 1.4rem; margin-top: 0.7rem; font-size: 0.88rem; color: #ffc394; }
-      #studioProgress { height: 0.55rem; border-radius: 999px; background: rgba(255,107,0,0.16); border: 1px solid rgba(255,107,0,0.3); margin-top: 0.6rem; overflow: hidden; display: none; }
-      #studioProgress > div { height: 100%; width: 0%; background: linear-gradient(90deg, #ff6b00, #ff9b45); transition: width 0.15s ease; }
-      .seg { display: flex; gap: 0.5rem; }
-      .seg button { flex: 1; appearance: none; border: 1px solid rgba(255,107,0,0.42); background: rgba(20,20,20,0.84); border-radius: 999px; color: #ffb076; cursor: pointer; font-size: 0.86rem; font-weight: 700; padding: 0.6rem; }
-      .seg button.is-active { background: rgba(255,107,0,0.25); border-color: #ff6b00; color: #ffc394; }
-      .use-voice-btn { margin-top: 0.75rem; width: 100%; appearance: none; border: 1px solid rgba(255,107,0,0.42); background: rgba(255,107,0,0.12); border-radius: 999px; color: #ffb076; cursor: pointer; font-size: 0.8rem; font-weight: 700; padding: 0.55rem; }
-      .use-voice-btn:hover { background: rgba(255,107,0,0.25); color: #ffc394; }
-
-      a {
-        color: #ff6b00;
-      }
-
-      a:hover {
-        color: #ff8a33;
-        text-shadow: 0 0 12px rgba(255, 107, 0, 0.42);
-      }
-
-      @media (max-width: 900px) {
-        .hero {
-          grid-template-columns: 1fr;
-        }
-
-        .hero-logo-link,
-        .hero-logo {
-          margin-left: 0;
-          max-width: 220px;
-        }
-
-        .hero-site-link {
-          align-self: flex-start;
-          width: min(220px, 100%);
-        }
-      }
-
-      @media (max-width: 720px) {
-        .topbar {
-          align-items: flex-start;
-          flex-direction: column;
-        }
-
-        .top-actions,
-        .top-links {
-          justify-content: flex-start;
-        }
-
-        .player {
-          grid-template-columns: 1fr;
-        }
-
-        .duration {
-          text-align: left;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <canvas id="shapes" aria-hidden="true"></canvas>
-    <main class="page-shell">
-      <section class="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-3 sm:px-6 sm:py-4 lg:px-8">
-        <header class="mb-8 pt-0">
-          <div class="hero">
-            <div>
-              <div class="topbar">
-                <a class="brand-lockup" href="https://github.com/namng194/kokoroTTS-hf" target="_blank" rel="noopener noreferrer">
-                  <img class="brand-logo" src="../assets/kokorotts_hf_logo.svg" alt="KokoroTTS-HF logo">
-                  <div>
-                    <div class="brand-name">KokoroTTS-HF</div>
-                    <div class="brand-subtitle" data-i18n="brandSubtitle">Useful tools, easy to run</div>
-                  </div>
-                </a>
-                <div class="top-actions">
-                  <div class="volume-control" aria-label="Volume control">
-                    <button class="volume-button" type="button" aria-label="Mute audio" data-muted="false">
-                      <svg class="volume-icon-on" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6.5 15.5H4.75A1.75 1.75 0 013 13.75v-3.5c0-.97.78-1.75 1.75-1.75H6.5l5-4.25v15.5l-5-4.25zM16 8.5a5 5 0 010 7M18.75 6a8.5 8.5 0 010 12"></path>
-                      </svg>
-                      <svg class="volume-icon-muted" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" hidden>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6.5 15.5H4.75A1.75 1.75 0 013 13.75v-3.5c0-.97.78-1.75 1.75-1.75H6.5l5-4.25v15.5l-5-4.25zM17 9.5l4 4M21 9.5l-4 4"></path>
-                      </svg>
-                    </button>
-                    <input class="volume-slider" type="range" min="0" max="1" step="0.01" value="0.85" aria-label="Volume">
-                  </div>
-                  <nav class="top-links" aria-label="Project links">
-                    <a class="pill px-4 py-2 text-sm font-semibold no-underline" href="#studio" data-i18n="liveDemo">Live inference</a>
-                    <a class="pill px-4 py-2 text-sm font-semibold no-underline" href="https://github.com/namng194/kokoroTTS-hf">GitHub</a>
-                  </nav>
-                </div>
-              </div>
-              <h1 class="brand-glow max-w-4xl text-4xl font-extrabold leading-none sm:text-6xl">
-                <span data-i18n="headline">KokoroTTS voice examples</span>
-              </h1>
-              <p class="mt-5 max-w-3xl text-base leading-7 text-[#ffb076] sm:text-lg" data-i18n="intro">
-                Easy-to-run text-to-speech Docker images built for professionals and for people who are not technical.
-                Install Docker, run one command, open the browser, or call the same API from your own application.
-                KokoroTTS creates compact MP3 audio, exposes the full Kokoro voice set, and works out of the box.
-              </p>
-              <div class="mt-5 flex flex-wrap gap-2">
-                <span class="pill px-3 py-1 text-sm font-semibold" data-i18n="pillVoices">70 voices</span>
-                <span class="pill px-3 py-1 text-sm font-semibold" data-i18n="pillLanguages">11 languages</span>
-                <span class="pill px-3 py-1 text-sm font-semibold" data-i18n="pillApi">UI + API</span>
-                <span class="pill px-3 py-1 text-sm font-semibold" data-i18n="pillOffline">Offline-friendly Docker image</span>
-              </div>
-            </div>
-            <div class="hero-logo-panel" aria-hidden="true">
-              <a class="hero-logo-link" href="https://github.com/namng194/kokoroTTS-hf" target="_blank" rel="noopener noreferrer" tabindex="-1">
-                <img class="hero-logo" src="../assets/kokorotts_hf_logo.svg" alt="">
-              </a>
-              <a class="hero-site-link" href="https://github.com/namng194/kokoroTTS-hf" target="_blank" rel="noopener noreferrer">kokoroTTS-hf</a>
-            </div>
-          </div>
-        </header>
-
-        <section id="studio" class="brand-card mb-8 p-5">
-          <h2 class="text-2xl font-extrabold brand-glow">Live inference — 1 page, all voices</h2>
-          <p class="mt-2 text-sm leading-6">Type text, pick <span class="font-bold">any of the 70 voices below</span>, press Generate. The 28 English voices synthesize live in your browser (kokoro-js, WebGPU/WASM, no quota). The other 42 play their pre-rendered sample instantly — same page, no missing language.</p>
-          <div class="mt-3 flex flex-wrap gap-2">
-            <span class="pill px-3 py-1 text-sm font-semibold" id="pillDevice">detecting device…</span>
-            <span class="pill px-3 py-1 text-sm font-semibold" id="pillVoices">loading voices…</span>
-            <span class="pill px-3 py-1 text-sm font-semibold">70 voices / 11 languages</span>
-          </div>
-          <div class="studio-field mt-4">
-            <div class="flex items-center justify-between gap-3">
-              <label for="studioText" style="margin:0">Text</label>
-              <span id="studioCount" class="text-xs">0 / 2000</span>
-            </div>
-            <textarea id="studioText" maxlength="2000">Hello from KokoroTTS-HF. This speech is generated entirely inside your browser.</textarea>
-          </div>
-          <div class="studio-field mt-4">
-            <label>Mode</label>
-            <div class="seg">
-              <button type="button" id="modeSingle" class="is-active">Single voice</button>
-              <button type="button" id="modeMix">Audio mix (A + B)</button>
-            </div>
-          </div>
-          <div class="studio-field mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-              <label for="voiceA">Voice A (all 70)</label>
-              <select id="voiceA"><option>Loading…</option></select>
-            </div>
-            <div id="voiceBWrap" style="display:none">
-              <label for="voiceB">Voice B (mix)</label>
-              <select id="voiceB"><option>Loading…</option></select>
-            </div>
-          </div>
-          <div class="studio-field mt-4 grid grid-cols-1 gap-4 md:grid-cols-2" id="mixRow" style="display:none">
-            <div>
-              <label for="mixRange">Mix weight of B (<span id="mixVal">0.50</span>)</label>
-              <input type="range" id="mixRange" min="0" max="1" step="0.05" value="0.5">
-            </div>
-            <div>
-              <label>&nbsp;</label>
-              <p class="text-sm leading-6">Mix renders A and B separately, then blends the audio. Works when both are live voices.</p>
-            </div>
-          </div>
-          <div class="studio-field mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-              <label for="speedRange">Speed: <span id="speedVal">1.00</span>x</label>
-              <input type="range" id="speedRange" min="0.5" max="2" step="0.05" value="1">
-            </div>
-            <div>
-              <label for="samplePreset">Quick text</label>
-              <select id="samplePreset">
-                <option value="Hello from KokoroTTS-HF. This speech is generated entirely inside your browser.">Intro (EN)</option>
-                <option value="Life is like a box of chocolates. You never know what you're gonna get.">Quote</option>
-                <option value="The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs.">Pangram</option>
-              </select>
-            </div>
-          </div>
-          <button class="go mt-5" id="studioGo" disabled>Loading model…</button>
-          <div id="studioProgress"><div></div></div>
-          <div id="studioStatus">Preparing…</div>
-          <audio id="studioPlayer" controls style="display:none"></audio>
-          <div class="mt-3 flex flex-wrap gap-2">
-            <a class="pill px-4 py-2 text-sm font-semibold no-underline" id="studioDownload" href="#" download="kokorotts-hf.wav" style="display:none">Download WAV</a>
-          </div>
-          <p class="mt-3 text-sm leading-6" id="studioVoiceNote"></p>
-        </section>
-
-        <section class="language-filter" aria-label="Filter voice examples by language" data-i18n-aria="voiceFilterLabel">
-          <button class="filter-button" type="button" data-language-value="all" aria-pressed="false" data-i18n="filterAll">All</button>
-          <button class="filter-button is-active" type="button" data-language-value="American English" aria-pressed="true">American English</button>
-          <button class="filter-button" type="button" data-language-value="British English" aria-pressed="false">British English</button>
-          <button class="filter-button" type="button" data-language-value="Japanese" aria-pressed="false">日本語</button>
-          <button class="filter-button" type="button" data-language-value="Mandarin Chinese" aria-pressed="false">中文</button>
-          <button class="filter-button" type="button" data-language-value="Spanish" aria-pressed="false">Español</button>
-          <button class="filter-button" type="button" data-language-value="French" aria-pressed="false">Français</button>
-          <button class="filter-button" type="button" data-language-value="Hindi" aria-pressed="false">हिन्दी</button>
-          <button class="filter-button" type="button" data-language-value="Italian" aria-pressed="false">Italiano</button>
-          <button class="filter-button" type="button" data-language-value="Brazilian Portuguese" aria-pressed="false">Português do Brasil</button>
-          <button class="filter-button" type="button" data-language-value="German" aria-pressed="false">Deutsch</button>
-          <button class="filter-button" type="button" data-language-value="Vietnamese" aria-pressed="false">Tiếng Việt</button>
-        </section>
-
-        <section class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Voice examples" data-i18n-aria="voiceExamplesLabel" data-voice-grid></section>
-      </section>
-    </main>
-    <script src="voices.js"></script>
-    <script src="player.js"></script>
-    <script src="background.js"></script>
-    <script type="module">
-      import { KokoroTTS } from "https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.web.js";
-      const MODEL_ID = "onnx-community/Kokoro-82M-v1.0-ONNX";
-      const SINGLE_SHOT_LIMIT = 400;
-      const SUPPORTED_RE = /^(af_|am_|bf_|bm_)/;
-      const isLiveVoice = (id) => SUPPORTED_RE.test(id || "");
-      const $ = (id) => document.getElementById(id);
-      const textEl = $("studioText"), voiceAEl = $("voiceA"), voiceBEl = $("voiceB"),
-        voiceBWrap = $("voiceBWrap"), mixRow = $("mixRow"), modeSingle = $("modeSingle"),
-        modeMix = $("modeMix"), speedEl = $("speedRange"), speedVal = $("speedVal"),
-        mixEl = $("mixRange"), mixVal = $("mixVal"), sampleEl = $("samplePreset"),
-        goBtn = $("studioGo"), statusEl = $("studioStatus"), progressEl = $("studioProgress"),
-        progressBar = progressEl.querySelector("div"), player = $("studioPlayer"),
-        download = $("studioDownload"), count = $("studioCount"),
-        pillDevice = $("pillDevice"), pillVoices = $("pillVoices"), voiceNote = $("studioVoiceNote");
-      let tts = null, audioCtx = null, mode = "single";
-      const setStatus = (m) => { statusEl.textContent = m; };
-      const setProgress = (p) => { progressEl.style.display = "block"; progressBar.style.width = Math.round(Math.max(0, Math.min(1, p)) * 100) + "%"; };
-      const hideProgress = () => { progressEl.style.display = "none"; progressBar.style.width = "0%"; };
-      const updateCount = () => { count.textContent = (textEl.value || "").length + " / 2000"; };
-      textEl.addEventListener("input", updateCount); updateCount();
-      speedEl.addEventListener("input", () => { speedVal.textContent = Number(speedEl.value).toFixed(2); });
-      mixEl.addEventListener("input", () => { mixVal.textContent = Number(mixEl.value).toFixed(2); });
-      sampleEl.addEventListener("change", () => { textEl.value = sampleEl.value; updateCount(); });
-      function setMode(next) {
-        mode = next;
-        modeSingle.classList.toggle("is-active", next === "single");
-        modeMix.classList.toggle("is-active", next === "mix");
-        const isMix = next === "mix";
-        voiceBWrap.style.display = isMix ? "block" : "none";
-        mixRow.style.display = isMix ? "grid" : "none";
-        updateVoiceNote();
-      }
-      modeSingle.addEventListener("click", () => setMode("single"));
-      modeMix.addEventListener("click", () => setMode("mix"));
-      function updateVoiceNote() {
-        const a = voiceAEl.value, b = voiceBEl.value;
-        const live = isLiveVoice(a) && (mode === "single" || isLiveVoice(b));
-        voiceNote.textContent = live
-          ? "Selected voice renders live in your browser."
-          : "Selected voice is sample-only in-browser (model ships 28 English voices) — Generate plays its pre-rendered MP3 from the gallery below.";
-      }
-      function fillAllVoices() {
-        const list = (window.VOICE_EXAMPLES || []).slice().sort((x, y) => (x.language + x.voice).localeCompare(y.language + y.voice));
-        const groups = {};
-        for (const v of list) (groups[v.language] = groups[v.language] || []).push(v);
-        for (const [sel, selected] of [[voiceAEl, "af_heart"], [voiceBEl, "af_bella"]]) {
-          sel.innerHTML = "";
-          for (const lang of Object.keys(groups).sort()) {
-            const opt = document.createElement("optgroup");
-            opt.label = lang;
-            for (const v of groups[lang]) {
-              const o = document.createElement("option");
-              o.value = v.voice;
-              o.textContent = v.voice + " — " + v.name + (isLiveVoice(v.voice) ? " (live)" : " (sample)");
-              if (v.voice === selected) o.selected = true;
-              opt.appendChild(o);
-            }
-            sel.appendChild(opt);
-          }
-          sel.addEventListener("change", updateVoiceNote);
-        }
-        pillVoices.textContent = list.length + " voices / 11 languages";
-        updateVoiceNote();
-      }
-      window.KokoroStudioUseVoice = function (voiceId) {
-        if (!voiceId) return;
-        voiceAEl.value = voiceId;
-        setMode("single");
-        updateVoiceNote();
-        document.getElementById("studio").scrollIntoView({ behavior: "smooth" });
-        setStatus("Voice set to " + voiceId + (isLiveVoice(voiceId) ? " — press Generate." : " (sample-only) — press Generate to hear its sample."));
-      };
-      function encodeWav(samples, rate) {
-        const buffer = new ArrayBuffer(44 + samples.length * 2);
-        const view = new DataView(buffer);
-        const ws = (off, s) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
-        ws(0, "RIFF"); view.setUint32(4, 36 + samples.length * 2, true); ws(8, "WAVE");
-        ws(12, "fmt "); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
-        view.setUint16(22, 1, true); view.setUint32(24, rate, true);
-        view.setUint32(28, rate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true);
-        ws(36, "data"); view.setUint32(40, samples.length * 2, true);
-        for (let i = 0; i < samples.length; i++) {
-          const s = Math.max(-1, Math.min(1, samples[i]));
-          view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
-        }
-        return new Blob([buffer], { type: "audio/wav" });
-      }
-      const concatF32 = (chunks) => {
-        let total = 0;
-        for (const c of chunks) total += c.length;
-        const out = new Float32Array(total);
-        let off = 0;
-        for (const c of chunks) { out.set(c, off); off += c.length; }
-        return out;
-      };
-      const splitSentences = (text) => {
-        const parts = text.replace(/\s+/g, " ").match(/[^.!?]+[.!?]+["']?|\S[^.!?]*$/g);
-        const out = (parts || [text]).map((s) => s.trim()).filter(Boolean);
-        return out.length ? out : [text];
-      };
-      async function loadModel() {
-        fillAllVoices();
-        const hasGPU = !!navigator.gpu;
-        pillDevice.textContent = hasGPU ? "WebGPU detected" : "WASM mode";
-        const attempts = hasGPU ? [{ dtype: "fp32", device: "webgpu" }, { dtype: "q8", device: "wasm" }] : [{ dtype: "q8", device: "wasm" }];
-        let lastErr = null;
-        for (const opts of attempts) {
-          try {
-            setStatus("Downloading Kokoro-82M (" + opts.dtype + " / " + opts.device + ") — once, then cached…");
-            setProgress(0.02);
-            tts = await KokoroTTS.from_pretrained(MODEL_ID, {
-              dtype: opts.dtype, device: opts.device,
-              progress_callback: (prog) => {
-                if (prog && prog.progress != null) setProgress(prog.progress);
-                else if (prog && prog.status) setStatus(prog.status + " — " + (prog.file || MODEL_ID));
-              },
-            });
-            pillDevice.textContent = "running: " + opts.device + " / " + opts.dtype;
-            hideProgress();
-            goBtn.disabled = false;
-            goBtn.textContent = "Generate speech";
-            setStatus("Ready — 28 voices synthesize live, 42 play samples. Pick any voice and press Generate.");
-            return;
-          } catch (err) { lastErr = err; console.error("model load failed", opts, err); }
-        }
-        hideProgress();
-        setStatus("Model failed to load (" + (lastErr && lastErr.message ? lastErr.message : lastErr) + ") — gallery samples below still play.");
-        goBtn.disabled = false;
-        goBtn.textContent = "Play sample instead";
-      }
-      async function synthSingle(text, voice, speed, onChunk) {
-        if (text.length <= SINGLE_SHOT_LIMIT) {
-          const audio = await tts.generate(text, { voice, speed });
-          if (onChunk) onChunk(1, 1);
-          return { samples: audio.data, rate: audio.sampling_rate || 24000 };
-        }
-        const sentences = splitSentences(text);
-        const chunks = [];
-        let rate = 24000, i = 0;
-        for await (const { audio } of tts.stream(sentences.join(" "), { voice, speed })) {
-          chunks.push(audio.data); rate = audio.sampling_rate || rate; i += 1;
-          if (onChunk) onChunk(i, sentences.length);
-        }
-        if (!chunks.length) throw new Error("Stream produced no audio — try shorter text.");
-        return { samples: concatF32(chunks), rate };
-      }
-      function playSampleFile(voiceId, label) {
-        const entry = (window.VOICE_EXAMPLES || []).find((v) => v.voice === voiceId);
-        if (!entry) throw new Error("No sample found for " + voiceId);
-        player.src = entry.file; player.style.display = "block"; player.play().catch(() => {});
-        download.style.display = "none";
-        setStatus((label || "Sample-only voice") + " (" + voiceId + ") — playing pre-rendered sample. Live synthesis covers the 28 English voices.");
-      }
-      goBtn.addEventListener("click", async () => {
-        const text = (textEl.value || "").trim();
-        if (!text) { setStatus("Please enter some text first."); return; }
-        const a = voiceAEl.value, b = voiceBEl.value;
-        const needLive = mode === "single" ? [a] : [a, b];
-        if (needLive.some((v) => !isLiveVoice(v)) || !tts) {
-          try {
-            if (!tts && isLiveVoice(a) && (mode === "single" || isLiveVoice(b))) { setStatus("Model still loading — playing sample meanwhile."); }
-            playSampleFile(mode === "mix" && !isLiveVoice(a) ? a : (!isLiveVoice(a) ? a : b));
-          } catch (err) { setStatus("Synthesis failed: " + (err && err.message ? err.message : err)); }
-          return;
-        }
-        if (mode === "mix" && a === b) { setStatus("Pick two different voices to mix."); return; }
-        goBtn.disabled = true;
-        try {
-          if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-          if (audioCtx.state === "suspended") await audioCtx.resume();
-          const speed = parseFloat(speedEl.value) || 1;
-          let samples, rate;
-          if (mode === "single") {
-            setStatus("Synthesizing (" + a + ") on your device…"); setProgress(0.4);
-            ({ samples, rate } = await synthSingle(text, a, speed, (i, n) => { setStatus("Synthesizing… chunk " + i + "/" + n); setProgress(0.2 + 0.7 * i / n); }));
-          } else {
-            const mixW = parseFloat(mixEl.value) || 0.5;
-            setStatus("Mix 1/2 — rendering " + a + "…"); setProgress(0.3);
-            const ra = await synthSingle(text, a, speed, null);
-            setStatus("Mix 2/2 — rendering " + b + "…"); setProgress(0.7);
-            const rb = await synthSingle(text, b, speed, null);
-            const n = Math.min(ra.samples.length, rb.samples.length);
-            const out = new Float32Array(n);
-            for (let i = 0; i < n; i++) out[i] = (1 - mixW) * ra.samples[i] + mixW * rb.samples[i];
-            samples = out; rate = ra.rate;
-          }
-          setProgress(0.9);
-          const buf = audioCtx.createBuffer(1, samples.length, rate);
-          buf.getChannelData(0).set(samples);
-          const src = audioCtx.createBufferSource();
-          src.buffer = buf; src.connect(audioCtx.destination); src.start();
-          if (player.src && player.src.startsWith("blob:")) URL.revokeObjectURL(player.src);
-          const url = URL.createObjectURL(encodeWav(samples, rate));
-          player.src = url; player.style.display = "block";
-          download.href = url; download.style.display = "inline-block";
-          hideProgress();
-          setStatus("Done in your browser — " + (samples.length / rate).toFixed(1) + "s of audio.");
-        } catch (err) { console.error(err); hideProgress(); setStatus("Synthesis failed: " + (err && err.message ? err.message : err)); }
-        goBtn.disabled = false;
-      });
-      loadModel();
-    </script>
-  </body>
+fillVoices();
+loadEngine();
+</script>
+</body>
 </html>

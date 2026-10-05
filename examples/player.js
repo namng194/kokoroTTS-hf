@@ -1,637 +1,176 @@
-const PAGE_LANGUAGES = {
-  en: "American English",
-  ja: "Japanese",
-  zh: "Mandarin Chinese",
-  es: "Spanish",
-  fr: "French",
-  hi: "Hindi",
-  it: "Italian",
-  pt: "Brazilian Portuguese",
-  de: "German",
-  vi: "Vietnamese",
-};
+/* KokoroTTS-HF Studio wall — original code. No upstream parts.
+   Renders language filters + 70 voice cards from window.VOICE_EXAMPLES.
+   Owns the VI/EN language toggle for the whole page. */
+(function () {
+  "use strict";
 
-const PAGE_LANGUAGE_BY_VOICE_LANGUAGE = Object.fromEntries(
-  Object.entries(PAGE_LANGUAGES).map(([pageLanguage, voiceLanguage]) => [voiceLanguage, pageLanguage]),
-);
+  var LANG_ORDER = [
+    "American English", "British English", "Japanese", "Mandarin Chinese",
+    "Spanish", "French", "Hindi", "Italian", "Brazilian Portuguese",
+    "German", "Vietnamese"
+  ];
+  var LANG_VI = {
+    "American English": "Tiếng Anh (Mỹ)", "British English": "Tiếng Anh (Anh)",
+    "Japanese": "Tiếng Nhật", "Mandarin Chinese": "Tiếng Trung",
+    "Spanish": "Tiếng Tây Ban Nha", "French": "Tiếng Pháp", "Hindi": "Tiếng Hindi",
+    "Italian": "Tiếng Ý", "Brazilian Portuguese": "Tiếng Bồ Đào Nha (Brasil)",
+    "German": "Tiếng Đức", "Vietnamese": "Tiếng Việt"
+  };
+  var LIVE_RE = /^(af_|am_|bf_|bm_)/;
 
-const LANGUAGE_LABELS = {
-  en: {
-    "American English": "American English",
-    "British English": "British English",
-    Japanese: "Japanese",
-    "Mandarin Chinese": "Mandarin Chinese",
-    Spanish: "Spanish",
-    French: "French",
-    Hindi: "Hindi",
-    Italian: "Italian",
-    "Brazilian Portuguese": "Brazilian Portuguese",
-    German: "German",
-    Vietnamese: "Vietnamese",
-  },
-  ja: {
-    "American English": "アメリカ英語",
-    "British English": "イギリス英語",
-    Japanese: "日本語",
-    "Mandarin Chinese": "中国語",
-    Spanish: "スペイン語",
-    French: "フランス語",
-    Hindi: "ヒンディー語",
-    Italian: "イタリア語",
-    "Brazilian Portuguese": "ブラジルポルトガル語",
-    German: "ドイツ語",
-    Vietnamese: "ベトナム語",
-  },
-  zh: {
-    "American English": "美式英语",
-    "British English": "英式英语",
-    Japanese: "日语",
-    "Mandarin Chinese": "中文",
-    Spanish: "西班牙语",
-    French: "法语",
-    Hindi: "印地语",
-    Italian: "意大利语",
-    "Brazilian Portuguese": "巴西葡萄牙语",
-    German: "德语",
-    Vietnamese: "越南语",
-  },
-  es: {
-    "American English": "Inglés estadounidense",
-    "British English": "Inglés británico",
-    Japanese: "Japonés",
-    "Mandarin Chinese": "Chino mandarín",
-    Spanish: "Español",
-    French: "Francés",
-    Hindi: "Hindi",
-    Italian: "Italiano",
-    "Brazilian Portuguese": "Portugués de Brasil",
-    German: "Alemán",
-    Vietnamese: "Vietnamita",
-  },
-  fr: {
-    "American English": "Anglais américain",
-    "British English": "Anglais britannique",
-    Japanese: "Japonais",
-    "Mandarin Chinese": "Chinois mandarin",
-    Spanish: "Espagnol",
-    French: "Français",
-    Hindi: "Hindi",
-    Italian: "Italien",
-    "Brazilian Portuguese": "Portugais du Brésil",
-    German: "Allemand",
-    Vietnamese: "Vietnamien",
-  },
-  hi: {
-    "American English": "अमेरिकी अंग्रेज़ी",
-    "British English": "ब्रिटिश अंग्रेज़ी",
-    Japanese: "जापानी",
-    "Mandarin Chinese": "चीनी",
-    Spanish: "स्पेनिश",
-    French: "फ़्रेंच",
-    Hindi: "हिन्दी",
-    Italian: "इतालवी",
-    "Brazilian Portuguese": "ब्राज़ीलियाई पुर्तगाली",
-    German: "जर्मन",
-    Vietnamese: "वियतनामी",
-  },
-  it: {
-    "American English": "Inglese americano",
-    "British English": "Inglese britannico",
-    Japanese: "Giapponese",
-    "Mandarin Chinese": "Cinese mandarino",
-    Spanish: "Spagnolo",
-    French: "Francese",
-    Hindi: "Hindi",
-    Italian: "Italiano",
-    "Brazilian Portuguese": "Portoghese brasiliano",
-    German: "Tedesco",
-    Vietnamese: "Vietnamita",
-  },
-  pt: {
-    "American English": "Inglês americano",
-    "British English": "Inglês britânico",
-    Japanese: "Japonês",
-    "Mandarin Chinese": "Chinês mandarim",
-    Spanish: "Espanhol",
-    French: "Francês",
-    Hindi: "Hindi",
-    Italian: "Italiano",
-    "Brazilian Portuguese": "Português do Brasil",
-    German: "Alemão",
-    Vietnamese: "Vietnamita",
-  },
-  de: {
-    "American English": "Amerikanisches Englisch",
-    "British English": "Britisches Englisch",
-    Japanese: "Japanisch",
-    "Mandarin Chinese": "Mandarin-Chinesisch",
-    Spanish: "Spanisch",
-    French: "Französisch",
-    Hindi: "Hindi",
-    Italian: "Italienisch",
-    "Brazilian Portuguese": "Brasilianisches Portugiesisch",
-    German: "Deutsch",
-    Vietnamese: "Vietnamesisch",
-  },
-  vi: {
-    "American English": "Tiếng Anh Mỹ",
-    "British English": "Tiếng Anh Anh",
-    Japanese: "Tiếng Nhật",
-    "Mandarin Chinese": "Tiếng Trung",
-    Spanish: "Tiếng Tây Ban Nha",
-    French: "Tiếng Pháp",
-    Hindi: "Tiếng Hindi",
-    Italian: "Tiếng Ý",
-    "Brazilian Portuguese": "Tiếng Bồ Đào Nha Brasil",
-    German: "Tiếng Đức",
-    Vietnamese: "Tiếng Việt",
-  },
-};
+  var STR = {
+    vi: {
+      tagline: "70 giọng đọc · 11 ngôn ngữ · CPU",
+      hero: "Nói bằng trình duyệt của bạn",
+      heroSub: "Gõ chữ, chọn 1 trong 70 giọng, bấm Tạo tiếng — 28 giọng Anh tổng hợp trực tiếp trên máy bạn (CPU), các giọng còn lại phát mẫu studio tức thì. Không server, không quota.",
+      heroSubEn: "Type text, pick any of 70 voices, press Generate — 28 English voices synthesize live on your CPU, the rest play studio samples instantly. No server, no quota.",
+      pillVoices: "giọng · 11 ngôn ngữ",
+      studioTitle: "Studio — tạo tiếng nói",
+      studioSub: "28 giọng tiếng Anh chạy live 100% trên CPU máy bạn. Giọng khác cần backend CPU (tùy chọn bên dưới), nếu không sẽ phát mẫu có sẵn.",
+      textLabel: "Văn bản", modeLabel: "Chế độ", mSingle: "1 giọng", mMix: "Pha trộn A + B",
+      all70: "cả 70 giọng", mixLabel: "Tỉ lệ giọng B",
+      mixNote: "Mix dựng A và B riêng rồi hòa âm thanh. Qua backend thì blend đúng embedding.",
+      spdLabel: "Tốc độ", presetLabel: "Câu mẫu nhanh",
+      beTitle: "Backend CPU tự host (tùy chọn — cho 42 giọng phi-Anh live)",
+      beNote: "Chạy Docker CPU: docker run -p 7860:7860 (image local), rồi dán địa chỉ vào đây. Trống = dùng mẫu có sẵn.",
+      beSave: "Lưu", beEmpty: "Đã xóa backend — dùng mẫu có sẵn.", wallTitle: "Chọn giọng — 70 voices",
+      wallSub: "Bấm ▶ nghe mẫu, bấm “Dùng giọng này” để đưa lên Studio. Thẻ xanh lá = tổng hợp live trên CPU.",
+      all: "Tất cả", use: "Dùng giọng này ↑", live: "live CPU", sample: "mẫu",
+      play: "Nghe mẫu", pause: "Dừng"
+    },
+    en: {
+      tagline: "70 voices · 11 languages · CPU",
+      hero: "Speak in your browser",
+      heroSub: "Type text, pick any of 70 voices, press Generate — 28 English voices synthesize live on your CPU, the rest play studio samples instantly. No server, no quota.",
+      heroSubEn: "Gõ chữ, chọn 1 trong 70 giọng, bấm Tạo tiếng — 28 giọng Anh live trên CPU, các giọng còn lại phát mẫu tức thì. Không server, không quota.",
+      pillVoices: "voices · 11 languages",
+      studioTitle: "Studio — generate speech",
+      studioSub: "28 English voices run live, 100% on your CPU. Other voices need the (optional) CPU backend below, otherwise their sample plays.",
+      textLabel: "Text", modeLabel: "Mode", mSingle: "Single voice", mMix: "Blend A + B",
+      all70: "all 70 voices", mixLabel: "Voice B weight",
+      mixNote: "Mix renders A and B separately, then blends the audio. Via backend it blends true embeddings.",
+      spdLabel: "Speed", presetLabel: "Quick text",
+      beTitle: "Self-hosted CPU backend (optional — live non-English voices)",
+      beNote: "Run CPU Docker: docker run -p 7860:7860 (local image), then paste its address here. Empty = use built-in samples.",
+      beSave: "Save", beEmpty: "Backend cleared — using built-in samples.", wallTitle: "Pick a voice — 70 voices",
+      wallSub: "Press ▶ to hear the sample, “Use this voice” loads it into the Studio. Green tag = live synthesis on CPU.",
+      all: "All", use: "Use this voice ↑", live: "live CPU", sample: "sample",
+      play: "Preview", pause: "Pause"
+    }
+  };
 
-const TRANSLATIONS = {
-  en: {
-    title: "KokoroTTS-HF Voice Examples",
-    liveDemo: "Live inference",
-    brandSubtitle: "Useful tools, easy to run",
-    headline: "KokoroTTS voice examples",
-    intro: "Easy-to-run text-to-speech Docker images built for professionals and for people who are not technical. Install Docker, run one command, open the browser, or call the same API from your own application. KokoroTTS creates compact MP3 audio, exposes the full Kokoro voice set, and works out of the box.",
-    pillVoices: "70 voices",
-    pillLanguages: "11 languages",
-    pillApi: "UI + API",
-    pillOffline: "Offline-friendly Docker image",
-    filterAll: "All",
-    voiceFilterLabel: "Filter voice examples by language",
-    voiceExamplesLabel: "Voice examples",
-    playPrefix: "Play",
-    pausePrefix: "Pause",
-    seekSample: "Seek sample",
-  },
-  ja: {
-    title: "KokoroTTS-HF 音声サンプル",
-    liveDemo: "ライブ推論",
-    brandSubtitle: "便利なツールを、簡単に",
-    headline: "KokoroTTS 音声サンプル",
-    intro: "専門家にも、技術に詳しくない人にも使いやすい、Docker で動くテキスト読み上げです。Docker を入れて、コマンドを一つ実行し、ブラウザーを開くだけです。内蔵 UI から使うことも、自分のアプリケーションから同じ API を呼び出すこともできます。KokoroTTS はコンパクトな MP3 音声を作成し、すぐに使えます。",
-    pillVoices: "70 種類の音声",
-    pillLanguages: "11 の言語",
-    pillApi: "UI + API",
-    pillOffline: "オフライン向け Docker イメージ",
-    filterAll: "すべて",
-    voiceFilterLabel: "言語で音声サンプルを絞り込む",
-    voiceExamplesLabel: "音声サンプル",
-    playPrefix: "再生",
-    pausePrefix: "一時停止",
-    seekSample: "サンプルをシーク",
-  },
-  zh: {
-    title: "KokoroTTS-HF 声音示例",
-    liveDemo: "在线推理",
-    brandSubtitle: "实用工具，轻松运行",
-    headline: "KokoroTTS 声音示例",
-    intro: "易于运行的文本转语音 Docker 镜像，适合专业人员，也适合不太懂技术的用户。安装 Docker，运行一个命令，打开浏览器，或从自己的应用程序调用同一个 API。KokoroTTS 可以生成体积较小的 MP3 音频，提供完整的 Kokoro 声音集，并且开箱即用。",
-    pillVoices: "70 个声音",
-    pillLanguages: "11 种语言",
-    pillApi: "界面 + API",
-    pillOffline: "离线友好的 Docker 镜像",
-    filterAll: "全部",
-    voiceFilterLabel: "按语言筛选声音示例",
-    voiceExamplesLabel: "声音示例",
-    playPrefix: "播放",
-    pausePrefix: "暂停",
-    seekSample: "跳转示例音频",
-  },
-  es: {
-    title: "Ejemplos de voz de KokoroTTS-HF",
-    liveDemo: "Probar en vivo",
-    brandSubtitle: "Herramientas útiles, fáciles de ejecutar",
-    headline: "Ejemplos de voz de KokoroTTS",
-    intro: "Imágenes Docker de texto a voz fáciles de ejecutar, hechas para profesionales y para personas que no son técnicas. Instala Docker, ejecuta un comando, abre el navegador o llama a la misma API desde tu propia aplicación. KokoroTTS crea audio MP3 compacto, expone todo el conjunto de voces de Kokoro y funciona desde el primer momento.",
-    pillVoices: "70 voces",
-    pillLanguages: "11 idiomas",
-    pillApi: "UI + API",
-    pillOffline: "Imagen Docker apta para uso offline",
-    filterAll: "Todo",
-    voiceFilterLabel: "Filtrar ejemplos de voz por idioma",
-    voiceExamplesLabel: "Ejemplos de voz",
-    playPrefix: "Reproducir",
-    pausePrefix: "Pausar",
-    seekSample: "Buscar en la muestra",
-  },
-  fr: {
-    title: "Exemples de voix KokoroTTS-HF",
-    liveDemo: "Essai en direct",
-    brandSubtitle: "Des outils utiles, faciles à lancer",
-    headline: "Exemples de voix KokoroTTS",
-    intro: "Des images Docker de texte vers parole faciles à lancer, faites pour les professionnels et pour les personnes qui ne sont pas techniques. Installez Docker, lancez une commande, ouvrez le navigateur ou appelez la même API depuis votre application. KokoroTTS crée un audio MP3 compact, expose tout l'ensemble de voix Kokoro et fonctionne immédiatement.",
-    pillVoices: "70 voix",
-    pillLanguages: "11 langues",
-    pillApi: "UI + API",
-    pillOffline: "Image Docker adaptée au mode hors ligne",
-    filterAll: "Tout",
-    voiceFilterLabel: "Filtrer les exemples de voix par langue",
-    voiceExamplesLabel: "Exemples de voix",
-    playPrefix: "Lire",
-    pausePrefix: "Mettre en pause",
-    seekSample: "Parcourir l'extrait",
-  },
-  hi: {
-    title: "KokoroTTS-HF आवाज़ उदाहरण",
-    liveDemo: "लाइव सुनें",
-    brandSubtitle: "उपयोगी टूल, चलाने में आसान",
-    headline: "KokoroTTS आवाज़ उदाहरण",
-    intro: "चलाने में आसान टेक्स्ट टू स्पीच Docker इमेज, पेशेवरों और गैर-तकनीकी लोगों दोनों के लिए। Docker इंस्टॉल करें, एक कमांड चलाएँ, ब्राउज़र खोलें, या अपने एप्लिकेशन से वही API कॉल करें। KokoroTTS छोटा MP3 ऑडियो बनाता है, पूरा Kokoro voice set उपलब्ध कराता है, और तुरंत काम करता है।",
-    pillVoices: "70 आवाज़ें",
-    pillLanguages: "11 भाषाएँ",
-    pillApi: "UI + API",
-    pillOffline: "ऑफ़लाइन-फ्रेंडली Docker इमेज",
-    filterAll: "सभी",
-    voiceFilterLabel: "भाषा के अनुसार आवाज़ उदाहरण फ़िल्टर करें",
-    voiceExamplesLabel: "आवाज़ उदाहरण",
-    playPrefix: "चलाएँ",
-    pausePrefix: "रोकें",
-    seekSample: "नमूना खोजें",
-  },
-  it: {
-    title: "Esempi di voce KokoroTTS-HF",
-    liveDemo: "Prova dal vivo",
-    brandSubtitle: "Strumenti utili, facili da eseguire",
-    headline: "Esempi di voce KokoroTTS",
-    intro: "Immagini Docker per text to speech facili da eseguire, pensate per professionisti e per persone non tecniche. Installa Docker, esegui un comando, apri il browser oppure chiama la stessa API dalla tua applicazione. KokoroTTS crea audio MP3 compatto, espone l'intero set di voci Kokoro e funziona subito.",
-    pillVoices: "70 voci",
-    pillLanguages: "11 lingue",
-    pillApi: "UI + API",
-    pillOffline: "Immagine Docker adatta all'uso offline",
-    filterAll: "Tutto",
-    voiceFilterLabel: "Filtra gli esempi di voce per lingua",
-    voiceExamplesLabel: "Esempi di voce",
-    playPrefix: "Riproduci",
-    pausePrefix: "Pausa",
-    seekSample: "Scorri il campione",
-  },
-  pt: {
-    title: "Exemplos de voz do KokoroTTS-HF",
-    liveDemo: "Testar ao vivo",
-    brandSubtitle: "Ferramentas úteis, fáceis de executar",
-    headline: "Exemplos de voz do KokoroTTS",
-    intro: "Imagens Docker de text to speech fáceis de executar, feitas para profissionais e para pessoas que não são técnicas. Instale o Docker, execute um comando, abra o navegador ou chame a mesma API a partir da sua aplicação. O KokoroTTS cria áudio MP3 compacto, expõe todo o conjunto de vozes Kokoro e funciona direto.",
-    pillVoices: "70 vozes",
-    pillLanguages: "11 idiomas",
-    pillApi: "UI + API",
-    pillOffline: "Imagem Docker amigável para uso offline",
-    filterAll: "Todos",
-    voiceFilterLabel: "Filtrar exemplos de voz por idioma",
-    voiceExamplesLabel: "Exemplos de voz",
-    playPrefix: "Reproduzir",
-    pausePrefix: "Pausar",
-    seekSample: "Navegar no exemplo",
-  },
-  de: {
-    title: "KokoroTTS-HF Stimmbeispiele",
-    liveDemo: "Live testen",
-    brandSubtitle: "Nützliche Werkzeuge, einfach auszuführen",
-    headline: "KokoroTTS Stimmbeispiele",
-    intro: "Einfach auszuführende Text-zu-Sprache-Docker-Images für Profis und für Menschen ohne technische Vorkenntnisse. Installieren Sie Docker, führen Sie einen Befehl aus, öffnen Sie den Browser oder rufen Sie dieselbe API aus Ihrer eigenen Anwendung auf. KokoroTTS erstellt kompakte MP3-Audiodateien, bietet alle Stimmen und funktioniert sofort.",
-    pillVoices: "70 Stimmen",
-    pillLanguages: "11 Sprachen",
-    pillApi: "UI + API",
-    pillOffline: "Offline-freundliches Docker-Image",
-    filterAll: "Alle",
-    voiceFilterLabel: "Stimmbeispiele nach Sprache filtern",
-    voiceExamplesLabel: "Stimmbeispiele",
-    playPrefix: "Abspielen",
-    pausePrefix: "Pausieren",
-    seekSample: "Im Beispiel suchen",
-  },
-  vi: {
-    title: "Ví dụ giọng nói KokoroTTS-HF",
-    liveDemo: "Thử trực tiếp",
-    brandSubtitle: "Công cụ hữu ích, dễ dàng khởi chạy",
-    headline: "Ví dụ giọng nói KokoroTTS",
-    intro: "Bộ Docker chuyển văn bản thành giọng nói dễ chạy, dành cho cả chuyên gia và người không rành kỹ thuật. Hãy cài Docker, chạy một lệnh, mở trình duyệt hoặc gọi cùng một API từ ứng dụng của bạn. KokoroTTS tạo âm thanh MP3 nhỏ gọn, cung cấp đầy đủ các giọng nói và hoạt động ngay sau khi khởi động.",
-    pillVoices: "70 giọng nói",
-    pillLanguages: "11 ngôn ngữ",
-    pillApi: "Giao diện + API",
-    pillOffline: "Docker image thân thiện với chế độ ngoại tuyến",
-    filterAll: "Tất cả",
-    voiceFilterLabel: "Lọc ví dụ giọng nói theo ngôn ngữ",
-    voiceExamplesLabel: "Ví dụ giọng nói",
-    playPrefix: "Phát",
-    pausePrefix: "Tạm dừng",
-    seekSample: "Tua trong đoạn mẫu",
-  },
-};
+  window.KokoroLang = localStorage.getItem("kokorotts_hf_lang") || "vi";
+  function t(key) { return (STR[window.KokoroLang] || STR.vi)[key] || key; }
+  window.KokoroTr = t;
 
-let currentPageLanguage = "en";
-
-function renderVoiceExamples() {
-  const grid = document.querySelector("[data-voice-grid]");
-  if (!grid || !Array.isArray(window.VOICE_EXAMPLES)) {
-    return;
+  function applyLang() {
+    document.documentElement.lang = window.KokoroLang;
+    var els = document.querySelectorAll("[data-i18n]");
+    for (var i = 0; i < els.length; i++) {
+      var k = els[i].getAttribute("data-i18n");
+      if (STR[window.KokoroLang][k]) els[i].textContent = STR[window.KokoroLang][k];
+    }
+    var tg = document.getElementById("langToggle");
+    if (tg) tg.textContent = window.KokoroLang === "vi" ? "EN" : "VI";
+    if (typeof window.KokoroRefreshTexts === "function") window.KokoroRefreshTexts();
   }
 
-  grid.innerHTML = window.VOICE_EXAMPLES.map((voice) => `
-    <article class="brand-card p-5" data-language="${voice.language}">
-      <div class="mb-4 flex items-start justify-between gap-3 border-b border-orange-500/20 pb-3">
-        <div>
-          <h2 class="text-lg font-bold text-orange-400">${voice.name}</h2>
-          <p class="mt-1 text-sm text-[#ffb076]/80" data-card-language>${voice.language}</p>
-        </div>
-        <span class="rounded-full border border-orange-500/30 bg-orange-500/10 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-gray-300">${voice.voice}</span>
-      </div>
-      <audio preload="metadata" src="${voice.file}"></audio>
-      <button type="button" class="use-voice-btn" data-use-voice="${voice.voice}">Use this voice ↑</button>
-    </article>
-  `).join("");
-  grid.querySelectorAll("[data-use-voice]").forEach((btn) => {
-    btn.addEventListener("click", (event) => {
-      event.stopPropagation();
-      if (typeof window.KokoroStudioUseVoice === "function") {
-        window.KokoroStudioUseVoice(btn.dataset.useVoice);
-      } else {
-        document.getElementById("studio")?.scrollIntoView({ behavior: "smooth" });
-      }
+  var activeLang = "American English";
+
+  function voices() {
+    return Array.isArray(window.VOICE_EXAMPLES) ? window.VOICE_EXAMPLES : [];
+  }
+  function langName(en) {
+    return window.KokoroLang === "vi" ? (LANG_VI[en] || en) : en;
+  }
+  function isLive(id) { return LIVE_RE.test(id || ""); }
+
+  function renderFilters() {
+    var box = document.getElementById("filters");
+    if (!box) return;
+    var counts = {};
+    voices().forEach(function (v) { counts[v.language] = (counts[v.language] || 0) + 1; });
+    var html = '<button class="btn" type="button" data-f="all">' + t("all") + " (" + voices().length + ")</button>";
+    LANG_ORDER.forEach(function (l) {
+      if (!counts[l]) return;
+      html += '<button class="btn" type="button" data-f="' + l + '">' + langName(l) + " (" + counts[l] + ")</button>";
     });
-  });
-}
-
-renderVoiceExamples();
-
-const players = Array.from(document.querySelectorAll(".brand-card audio"));
-const cards = Array.from(document.querySelectorAll(".brand-card"));
-const filterButtons = Array.from(document.querySelectorAll("[data-language-value]"));
-const volumeButton = document.querySelector(".volume-button");
-const volumeSlider = document.querySelector(".volume-slider");
-const volumeIconOn = document.querySelector(".volume-icon-on");
-const volumeIconMuted = document.querySelector(".volume-icon-muted");
-let currentVolume = Number.parseFloat(volumeSlider?.value || "0.85");
-let lastVolume = currentVolume > 0 ? currentVolume : 0.85;
-
-function formatTime(value) {
-  if (!Number.isFinite(value)) {
-    return "0:00";
-  }
-
-  const minutes = Math.floor(value / 60);
-  const seconds = Math.floor(value % 60).toString().padStart(2, "0");
-  return `${minutes}:${seconds}`;
-}
-
-function pauseOthers(currentAudio) {
-  players.forEach((audio) => {
-    if (audio !== currentAudio) {
-      audio.pause();
-    }
-  });
-}
-
-function pauseAll() {
-  players.forEach((audio) => {
-    audio.pause();
-  });
-}
-
-function setLanguageFilter(language) {
-  pauseAll();
-  translatePage(PAGE_LANGUAGE_BY_VOICE_LANGUAGE[language] || "en");
-
-  filterButtons.forEach((button) => {
-    const isActive = button.dataset.languageValue === language;
-    button.classList.toggle("is-active", isActive);
-    button.setAttribute("aria-pressed", isActive.toString());
-  });
-
-  cards.forEach((card) => {
-    const isVisible = language === "all" || card.dataset.language === language;
-    card.hidden = !isVisible;
-  });
-}
-
-function translatePage(languageCode) {
-  currentPageLanguage = TRANSLATIONS[languageCode] ? languageCode : "en";
-  const translation = TRANSLATIONS[currentPageLanguage];
-  document.documentElement.lang = currentPageLanguage;
-  document.title = translation.title;
-
-  document.querySelectorAll("[data-i18n]").forEach((element) => {
-    const key = element.dataset.i18n;
-    if (translation[key]) {
-      element.textContent = translation[key];
-    }
-  });
-
-  document.querySelectorAll("[data-i18n-aria]").forEach((element) => {
-    const key = element.dataset.i18nAria;
-    if (translation[key]) {
-      element.setAttribute("aria-label", translation[key]);
-    }
-  });
-
-  cards.forEach((card) => {
-    const label = card.querySelector("[data-card-language]");
-    if (label) {
-      label.textContent = LANGUAGE_LABELS[currentPageLanguage][card.dataset.language] || card.dataset.language;
-    }
-    const heading = card.querySelector("h2")?.textContent || "voice sample";
-    const audio = card.querySelector("audio");
-    card.setAttribute("aria-label", `${audio?.paused === false ? translation.pausePrefix : translation.playPrefix} ${heading}`);
-  });
-
-  document.querySelectorAll(".progress-button").forEach((button) => {
-    button.setAttribute("aria-label", translation.seekSample);
-  });
-}
-
-function updateVolumeControl() {
-  const isMuted = currentVolume <= 0.001;
-
-  players.forEach((audio) => {
-    audio.volume = currentVolume;
-    audio.muted = isMuted;
-  });
-
-  if (volumeSlider) {
-    volumeSlider.value = currentVolume.toString();
-  }
-
-  if (volumeButton) {
-    volumeButton.dataset.muted = isMuted.toString();
-    volumeButton.setAttribute("aria-label", isMuted ? "Unmute audio" : "Mute audio");
-  }
-
-  if (volumeIconOn && volumeIconMuted) {
-    volumeIconOn.hidden = isMuted;
-    volumeIconMuted.hidden = !isMuted;
-    volumeIconOn.style.display = isMuted ? "none" : "block";
-    volumeIconMuted.style.display = isMuted ? "block" : "none";
-  }
-}
-
-if (volumeSlider) {
-  volumeSlider.addEventListener("input", () => {
-    currentVolume = Number.parseFloat(volumeSlider.value);
-
-    if (currentVolume > 0) {
-      lastVolume = currentVolume;
-    }
-
-    updateVolumeControl();
-  });
-}
-
-if (volumeButton) {
-  volumeButton.addEventListener("click", () => {
-    if (currentVolume > 0) {
-      lastVolume = currentVolume;
-      currentVolume = 0;
-    } else {
-      currentVolume = lastVolume || 0.85;
-    }
-
-    updateVolumeControl();
-  });
-}
-
-filterButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    setLanguageFilter(button.dataset.languageValue || "all");
-  });
-});
-
-players.forEach((audio) => {
-  const card = audio.closest(".brand-card");
-
-  audio.volume = currentVolume;
-  audio.removeAttribute("controls");
-  if (audio.nextElementSibling && audio.nextElementSibling.classList.contains("player")) {
-    return;
-  }
-
-  const controls = document.createElement("div");
-  controls.className = "player";
-  controls.innerHTML = `
-    <button class="progress-button" type="button" aria-label="${TRANSLATIONS[currentPageLanguage].seekSample}">
-      <span class="progress-track" aria-hidden="true">
-        <span class="progress-fill"></span>
-        <span class="progress-knob"></span>
-      </span>
-    </button>
-    <span class="duration">0:00</span>
-  `;
-
-  audio.insertAdjacentElement("afterend", controls);
-
-  const progressButton = controls.querySelector(".progress-button");
-  const progressFill = controls.querySelector(".progress-fill");
-  const progressKnob = controls.querySelector(".progress-knob");
-  const duration = controls.querySelector(".duration");
-
-  function setProgress(value) {
-    const progress = Math.max(0, Math.min(100, value));
-    progressFill.style.width = `${progress}%`;
-    progressKnob.style.left = `${progress}%`;
-  }
-
-  function seekToPosition(event) {
-    if (Number.isFinite(audio.duration)) {
-      const rect = progressButton.getBoundingClientRect();
-      const position = (event.clientX - rect.left) / rect.width;
-      const progress = Math.max(0, Math.min(1, position));
-      audio.currentTime = progress * audio.duration;
-      setProgress(progress * 100);
-    }
-  }
-
-  function togglePlayback() {
-    if (audio.paused) {
-      pauseOthers(audio);
-      audio.play();
-    } else {
-      audio.pause();
-    }
-  }
-
-  if (card) {
-    card.setAttribute("role", "button");
-    card.setAttribute("tabindex", "0");
-    card.setAttribute("aria-label", `${TRANSLATIONS[currentPageLanguage].playPrefix} ${card.querySelector("h2")?.textContent || "voice sample"}`);
-
-    card.addEventListener("click", togglePlayback);
-    card.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        togglePlayback();
-      }
+    box.innerHTML = html;
+    var btns = box.querySelectorAll("button");
+    btns.forEach(function (b) {
+      b.classList.toggle("on", b.getAttribute("data-f") === activeLang || (activeLang === "all" && b.getAttribute("data-f") === "all"));
+      b.addEventListener("click", function () {
+        activeLang = b.getAttribute("data-f");
+        btns.forEach(function (x) { x.classList.toggle("on", x === b); });
+        renderWall();
+      });
     });
   }
 
-  progressButton.addEventListener("click", (event) => {
-    event.stopPropagation();
-    seekToPosition(event);
+  function stopOthers(current) {
+    document.querySelectorAll("#wall audio").forEach(function (a) {
+      if (a !== current) { try { a.pause(); } catch (e) {} }
+    });
+  }
+
+  function renderWall() {
+    var wall = document.getElementById("wall");
+    if (!wall) return;
+    var list = voices().filter(function (v) {
+      return activeLang === "all" || v.language === activeLang;
+    });
+    var html = "";
+    list.forEach(function (v, i) {
+      var live = isLive(v.voice);
+      html += '<article class="vcard">' +
+        '<div class="nm">' + escapeHtml(v.name) + "</div>" +
+        '<div class="lg">' + escapeHtml(langName(v.language)) + "</div>" +
+        '<span class="id">' + escapeHtml(v.voice) + "</span>" +
+        '<span class="tag ' + (live ? "live" : "sample") + '">' + (live ? t("live") : t("sample")) + "</span>" +
+        '<audio preload="none" src="' + escapeAttr(v.file) + '"></audio>' +
+        '<div style="display:flex;gap:8px;margin-top:10px">' +
+        '<button class="btn use" type="button" data-play="' + i + '" style="flex:1">▶ ' + t("play") + "</button>" +
+        '<button class="btn use" type="button" data-use="' + escapeAttr(v.voice) + '" style="flex:2">' + t("use") + "</button>" +
+        "</div></article>";
+    });
+    wall.innerHTML = html || "<p>—</p>";
+
+    wall.querySelectorAll("[data-play]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var card = b.closest(".vcard");
+        var a = card ? card.querySelector("audio") : null;
+        if (!a) return;
+        if (a.paused) { stopOthers(a); a.play().catch(function () {}); b.innerHTML = "⏸ " + t("pause"); }
+        else { a.pause(); b.innerHTML = "▶ " + t("play"); }
+        a.onended = function () { b.innerHTML = "▶ " + t("play"); };
+        a.onpause = function () { b.innerHTML = "▶ " + t("play"); };
+      });
+    });
+    wall.querySelectorAll("[data-use]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        if (typeof window.KokoroUseVoice === "function") window.KokoroUseVoice(b.getAttribute("data-use"));
+      });
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+  function escapeAttr(s) { return escapeHtml(s).replace(/'/g, "&#39;"); }
+
+  function refreshWall() { renderFilters(); renderWall(); }
+  window.KokoroRefreshWall = refreshWall;
+
+  document.addEventListener("DOMContentLoaded", function () {
+    var tg = document.getElementById("langToggle");
+    if (tg) tg.addEventListener("click", function () {
+      window.KokoroLang = window.KokoroLang === "vi" ? "en" : "vi";
+      try { localStorage.setItem("kokorotts_hf_lang", window.KokoroLang); } catch (e) {}
+      applyLang(); refreshWall();
+    });
+    applyLang();
+    refreshWall();
   });
-
-  progressButton.addEventListener("pointerdown", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    progressButton.setPointerCapture(event.pointerId);
-    seekToPosition(event);
-  });
-
-  progressButton.addEventListener("pointermove", (event) => {
-    if (progressButton.hasPointerCapture(event.pointerId)) {
-      event.preventDefault();
-      event.stopPropagation();
-      seekToPosition(event);
-    }
-  });
-
-  progressButton.addEventListener("pointerup", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-
-    if (progressButton.hasPointerCapture(event.pointerId)) {
-      progressButton.releasePointerCapture(event.pointerId);
-    }
-  });
-
-  progressButton.addEventListener("pointercancel", (event) => {
-    if (progressButton.hasPointerCapture(event.pointerId)) {
-      progressButton.releasePointerCapture(event.pointerId);
-    }
-  });
-
-  audio.addEventListener("loadedmetadata", () => {
-    duration.textContent = `0:00 / ${formatTime(audio.duration)}`;
-  });
-
-  audio.addEventListener("timeupdate", () => {
-    if (Number.isFinite(audio.duration) && audio.duration > 0) {
-      setProgress((audio.currentTime / audio.duration) * 100);
-      duration.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
-    }
-  });
-
-  audio.addEventListener("play", () => {
-    if (card) {
-      card.classList.add("is-playing");
-      card.setAttribute("aria-label", `${TRANSLATIONS[currentPageLanguage].pausePrefix} ${card.querySelector("h2")?.textContent || "voice sample"}`);
-    }
-  });
-
-  audio.addEventListener("pause", () => {
-    if (card) {
-      card.classList.remove("is-playing");
-      card.setAttribute("aria-label", `${TRANSLATIONS[currentPageLanguage].playPrefix} ${card.querySelector("h2")?.textContent || "voice sample"}`);
-    }
-  });
-
-  audio.addEventListener("ended", () => {
-    setProgress(0);
-    if (card) {
-      card.classList.remove("is-playing");
-      card.setAttribute("aria-label", `${TRANSLATIONS[currentPageLanguage].playPrefix} ${card.querySelector("h2")?.textContent || "voice sample"}`);
-    }
-  });
-});
-
-updateVolumeControl();
-setLanguageFilter("American English");
+})();

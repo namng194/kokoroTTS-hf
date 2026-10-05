@@ -80,7 +80,7 @@ Hear all 70 voices in their supported languages on this fork's own gallery
 (deployed from [`examples/`](examples/) in this repo). Choose a language,
 compare speakers, and listen directly in the browser:
 
-**[Open the KokoroTTS-HF voice gallery](https://nam194-kokorotts-hf.static.hf.space/)**
+**[Open KokoroTTS-HF Studio — 1 page, inference + all 70 voice samples](https://nam194-kokorotts-hf.static.hf.space/#studio)**
 
 Want to synthesize your own text instead of samples? Scroll to **Live inference** at the top of the same page:
 **[Open KokoroTTS-HF — 1 page, inference + all samples](https://nam194-kokorotts-hf.static.hf.space/#studio)**.

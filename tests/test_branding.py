@@ -56,12 +56,13 @@ class TestGalleryBranding(unittest.TestCase):
             self.assertNotIn("Hangry Labs", content, name)
             self.assertNotIn("Hangry-Labs", content, name)
             self.assertNotIn("hangrylabs/", content, name)
+            self.assertNotIn("tailwindcss", content, name)
 
     def test_gallery_points_at_this_project(self):
         content = read("examples/index.html")
         self.assertIn(OUR_REPO, content)
         self.assertIn("kokorotts_hf_logo.svg", content)
-        self.assertIn('#studio', content)
+        self.assertIn('id="studio"', content)
 
     def test_single_page_inference_covers_all_voices(self):
         content = read("examples/index.html")
@@ -70,27 +71,32 @@ class TestGalleryBranding(unittest.TestCase):
         self.assertIn("kokoro-js", content)
         self.assertIn("KokoroTTS-HF", content)
         self.assertIn("kokorotts_hf_favicon.svg", content)
-        self.assertIn("VOICE_EXAMPLES", content)
-        self.assertIn("KokoroStudioUseVoice", content)
-        self.assertIn("isLiveVoice", content)
+        self.assertIn("KokoroUseVoice", content)
+        self.assertIn("wasm", content)
+        self.assertNotIn("webgpu", content)
         for voice_id in ("af_heart", "jf_alpha", "diem_trinh", "df_victoria"):
             self.assertIn(voice_id, read("examples/voices.js"))
+        wall = read("examples/player.js")
+        self.assertIn("VOICE_EXAMPLES", wall)
+        self.assertIn("KokoroUseVoice", wall)
         self.assertFalse((REPO_ROOT / "examples/studio.html").exists(),
                          "single-page: examples/studio.html must not exist")
+        self.assertFalse((REPO_ROOT / "examples/background.js").exists(),
+                         "custom UI: examples/background.js must not exist")
 
-    def test_live_demo_key_translated_everywhere(self):
+    def test_bilingual_dict_covers_both_locales(self):
         content = read("examples/player.js")
-        self.assertEqual(content.count('liveDemo: "'), 10,
-                         "liveDemo key must exist in all 10 locales")
+        for key in ("vi: {", "en: {"):
+            self.assertIn(key, content)
         self.assertNotIn("dockerHub", content)
 
     def test_i18n_keys_all_defined(self):
         html = read("examples/index.html")
         used = set(re.findall(r'data-i18n="([A-Za-z]+)"', html))
         js = read("examples/player.js")
-        en_block = js.split("const TRANSLATIONS = {", 1)[1].split("en: {", 1)[1]
-        en_block = en_block.split("},", 1)[0]
-        defined = set(re.findall(r"^\s*([A-Za-z]+):", en_block, re.M))
+        m = re.search(r"\ben: \{(.*?)\n  \};", js, re.S)
+        self.assertIsNotNone(m, "en locale block not found in player.js")
+        defined = set(re.findall(r"(?:^|,)\s*([A-Za-z]+):", m.group(1), re.M))
         self.assertTrue(used, "no data-i18n keys found")
         self.assertEqual(used - defined, set(),
                          f"i18n keys used but undefined: {used - defined}")
