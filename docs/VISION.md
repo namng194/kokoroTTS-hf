@@ -13,7 +13,9 @@ does not try to out-do upstream at its own game:
    UI + APIs on CPU) and `spaces/gradio_app.py` (Gradio SDK, full 70-voice
    demo), plus a **live free-tier static voice gallery**
    ([nam194-kokorotts-hf.static.hf.space](https://nam194-kokorotts-hf.static.hf.space/))
-   since hosted Gradio/Docker Spaces currently need PRO.
+   and a **live free ZeroGPU inference Space**
+   ([nam194/kokoroTTS-hf-live](https://huggingface.co/spaces/nam194/kokoroTTS-hf-live),
+   `@spaces.GPU` + CUDA torch, verified text → 24 kHz WAV end-to-end).
    Guide: `docs/HF_SPACES.md`. Deploy: `scripts/deploy_hf_space.py`.
 2. **Constrained-host profiles** (`kokorotts/space.py`, wired into `api.py`
    and `openai_compat.py`):

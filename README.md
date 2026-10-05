@@ -29,6 +29,11 @@ Hangry Labs home: [nuggies.website](https://nuggies.website/).
 This fork adds a lightweight **Hugging Face Spaces** deployment flavour:
 Kokoro-82M is small enough to run on a free CPU Space.
 
+- **Live inference (free ZeroGPU, real TTS)**:
+  [nam194/kokoroTTS-hf-live](https://huggingface.co/spaces/nam194/kokoroTTS-hf-live)
+  — type text, pick any of the 70 voices, get speech. GPU inference via
+  `@spaces.GPU`, deployed with
+  `python scripts/deploy_hf_space.py --flavour gradio --space-id YOU/kokoroTTS-hf-live --hardware zero-a10g --torch cuda`
 - **Live voice gallery (free tier, no backend)**:
   [nam194-kokorotts-hf.static.hf.space](https://nam194-kokorotts-hf.static.hf.space/)
   — all 70 voices playable in the browser, deployed from this repo via

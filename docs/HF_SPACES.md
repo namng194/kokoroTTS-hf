@@ -4,10 +4,23 @@ Live now (free tier, static gallery, no backend):
 **https://nam194-kokorotts-hf.static.hf.space/** — all 70 voices playable,
 deployed from this repo with `scripts/deploy_hf_space.py --flavour static`.
 
+Live now (free ZeroGPU, real inference):
+**https://huggingface.co/spaces/nam194/kokoroTTS-hf-live** — full 70-voice
+Gradio demo with GPU inference (`@spaces.GPU`, CUDA torch), verified
+end-to-end (text → 24 kHz WAV). Deploy your own copy:
+
+```bash
+python scripts/deploy_hf_space.py --flavour gradio \
+  --space-id YOU/kokoroTTS-hf-live --hardware zero-a10g --torch cuda
+```
+
 > Pricing reality (Oct 2026): Gradio/Docker Spaces on hosted CPU now require
-> a PRO subscription (creation fails with 402 otherwise). Static Spaces stay
-> free, so the gallery is the always-on public front; the Docker/Gradio
-> flavours below are ready for PRO workspaces and self-hosting.
+> a PRO subscription (creation fails with 402 otherwise). **ZeroGPU
+> (`zero-a10g`) still works on free accounts** and is the recommended hosted
+> inference target: it mandates `@spaces.GPU` (hence `--torch cuda`) and
+> Python 3.10 on the builder (hence the held-back pins in
+> `requirements-hf.txt` plus `spaces/packages.txt` for the source-only
+> pyopenjtalk build).
 
 Three supported flavours. Pick one:
 
