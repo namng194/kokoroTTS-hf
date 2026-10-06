@@ -5,6 +5,7 @@ Safe on constrained machines and in CI.
 """
 
 import ast
+import os
 import re
 import subprocess
 import sys
@@ -103,11 +104,19 @@ class TestGradioApp(unittest.TestCase):
 
     def test_production_ui_contract(self):
         src = read("spaces/gradio_app.py")
-        # Public API stays stable for API clients.
+        # Public API: generate takes text/mode/voices/speed/mix + author key.
         self.assertIn('api_name="generate"', src)
         self.assertIn(
-            "inputs=[text, mode, voice, voice_b, speed, mix]", src
+            "inputs=[text, mode, voice, voice_b, speed, mix, author_key]", src
         )
+        # Access gate: guests capped, author key unlocks unlimited.
+        self.assertIn("def is_authorized", src)
+        self.assertIn("_GUEST_MAX_CHARS = 300", src)
+        self.assertIn("KOKOROTTS_AUTHOR_KEY", src)
+        self.assertIn("compare_digest", src)
+        # Container log records the original text of every request.
+        self.assertIn("logger.info", src)
+        self.assertIn("author={}", src)
         # Production UX: language filter, char counter, examples, queue.
         self.assertIn("def language_options", src)
         self.assertIn("def voices_for_language", src)
@@ -223,6 +232,40 @@ class TestDeployHelper(unittest.TestCase):
             cwd=REPO_ROOT, capture_output=True, text=True, timeout=120, env=env,
         )
         self.assertEqual(proc.returncode, 2)
+
+
+class TestAuthorGate(unittest.TestCase):
+    def test_guest_rejected_before_runtime(self):
+        sys.path.insert(0, str(REPO_ROOT))
+        os.environ.pop("KOKOROTTS_AUTHOR_KEY", None)
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "gapp_gate", str(REPO_ROOT / "spaces" / "gradio_app.py")
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        self.assertFalse(module.is_authorized(""))
+        self.assertFalse(module.is_authorized(None))
+        self.assertFalse(module.is_authorized("anything"))
+        with self.assertRaises(ValueError) as ctx:
+            module.generate("x" * 301, "Single", "af_heart",
+                            "af_bella", 1.0, 0.5)
+        self.assertIn("300", str(ctx.exception))
+
+    def test_author_key_unlocks(self):
+        sys.path.insert(0, str(REPO_ROOT))
+        os.environ["KOKOROTTS_AUTHOR_KEY"] = "test-secret"
+        try:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location(
+                "gapp_gate_auth", str(REPO_ROOT / "spaces" / "gradio_app.py")
+            )
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            self.assertTrue(module.is_authorized("test-secret"))
+            self.assertFalse(module.is_authorized("wrong"))
+        finally:
+            os.environ.pop("KOKOROTTS_AUTHOR_KEY", None)
 
 
 class TestVoiceBlendWiring(unittest.TestCase):

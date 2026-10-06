@@ -5,8 +5,25 @@ Runs entirely on Space CPU. Serves the complete 70-voice catalogue.
 
 from __future__ import annotations
 
+import hmac
 import os
 import threading
+
+from loguru import logger
+
+# Access gate: guests are capped per request, the author key unlocks
+# unlimited length. Secret lives in the Space secrets as KOKOROTTS_AUTHOR_KEY.
+_GUEST_MAX_CHARS = 300
+_AUTHOR_KEY_ENV = "KOKOROTTS_AUTHOR_KEY"
+_LOG_TEXT_CAP = 2000
+
+
+def is_authorized(author_key: str | None) -> bool:
+    """True only when the key matches the configured author secret."""
+    secret = os.getenv(_AUTHOR_KEY_ENV, "")
+    if not secret or not author_key:
+        return False
+    return hmac.compare_digest(author_key, secret)
 
 # Hard defaults: full 70 voices, inference device is always CPU.
 os.environ.setdefault("KOKOROTTS_PRELOAD", "all")
@@ -98,13 +115,26 @@ def _synthesize(text: str, voice: str, speed: float, voice_blend):
         )
 
 
-def generate(text: str, mode: str, voice: str, voice_b: str, speed: float, mix: float):
-    try:
+def generate(text: str, mode: str, voice: str, voice_b: str, speed: float, mix: float, author_key: str = ""):
+    authorized = is_authorized(author_key)
+    if authorized:
+        text = (text or "").strip()
+    else:
         text = check_text_length(text)
-    except ValueError as exc:
-        raise ValueError(str(exc)) from exc
+        if len(text) > _GUEST_MAX_CHARS:
+            raise ValueError(
+                f"Guest limit is {_GUEST_MAX_CHARS} characters per request "
+                f"(got {len(text)}). Enter the author key for unlimited length."
+            )
     if not text:
         raise ValueError("Please enter some text first.")
+    logged = text if len(text) <= _LOG_TEXT_CAP else (
+        text[:_LOG_TEXT_CAP] + f"…[truncated {len(text) - _LOG_TEXT_CAP} chars]"
+    )
+    logger.info(
+        "generate voice={} mode={} speed={} chars={} author={} text={!r}",
+        voice, mode, speed, len(text), authorized, logged,
+    )
     speed = max(0.25, min(4.0, float(speed or 1.0)))
     voice_blend = None
     if mode == "Blend":
@@ -146,7 +176,7 @@ _FONT_HEAD = (
 
 _BANNER_CSS = """
 .kokoro-banner {
-  background: linear-gradient(135deg, #4c1d95 0%, #6d28d9 55%, #2563eb 100%);
+  background: linear-gradient(135deg, #0f7665 0%, #0e7490 60%, #0369a1 100%);
   border-radius: 16px;
   padding: 28px 32px;
   color: #fff;
@@ -193,6 +223,7 @@ def voices_for_language(option: str) -> list[tuple[str, str]]:
 
 def preview_voice(voice: str, speed: float):
     """Play the bundled sample file for a voice — no inference, instant."""
+    logger.info("preview voice={}", voice)
     path = sample_path_for_voice(voice)
     if path is None:
         raise ValueError(f"No bundled sample for voice '{voice}'.")
@@ -203,16 +234,11 @@ def build_demo():
     import gradio as gr
 
     summary = profile_summary()
-    limit = summary["max_chars"]
-    guard_line = (
-        f"Limit: {limit} characters per request."
-        if limit else "No per-request character limit on this deployment."
-    )
     all_voices = voice_choices()
 
     theme = gr.themes.Soft(
-        primary_hue="indigo",
-        secondary_hue="slate",
+        primary_hue="teal",
+        secondary_hue="cyan",
         font="Be Vietnam Pro",
     )
     with gr.Blocks(
@@ -286,6 +312,11 @@ def build_demo():
                         label="Speed", minimum=0.25, maximum=4.0,
                         step=0.05, value=1.0,
                     )
+                    author_key = gr.Textbox(
+                        label="Author key (optional)",
+                        placeholder="Guests: 300 chars · key: unlimited",
+                        type="password",
+                    )
                 with gr.Row():
                     btn = gr.Button(
                         "🔊 Generate", variant="primary", scale=2
@@ -297,7 +328,8 @@ def build_demo():
                     label="Output (24 kHz WAV)", interactive=False
                 )
                 gr.Markdown(
-                    f"_{guard_line} Profile: `{summary['preload']}`._"
+                    f"_Guests: max {_GUEST_MAX_CHARS} characters per request · "
+                    f"author key: unlimited. Profile: `{summary['preload']}`._"
                 )
                 with gr.Accordion(
                     "How voice blending works", open=False
@@ -324,11 +356,11 @@ def build_demo():
 
         gr.Examples(
             examples=[
-                ["Hello from KokoroTTS-HF on Space CPU.", "Single", "af_heart", "af_bella", 1.0, 0.5],
-                ["Xin chào, đây là giọng đọc tiếng Việt chạy hoàn toàn trên CPU.", "Single", "diem_trinh", "af_bella", 1.0, 0.5],
-                ["Two voices become one.", "Blend", "af_heart", "af_bella", 1.0, 0.5],
+                ["Hello from KokoroTTS-HF on Space CPU.", "Single", "af_heart", "af_bella", 1.0, 0.5, ""],
+                ["Xin chào, đây là giọng đọc tiếng Việt chạy hoàn toàn trên CPU.", "Single", "diem_trinh", "af_bella", 1.0, 0.5, ""],
+                ["Two voices become one.", "Blend", "af_heart", "af_bella", 1.0, 0.5, ""],
             ],
-            inputs=[text, mode, voice, voice_b, speed, mix],
+            inputs=[text, mode, voice, voice_b, speed, mix, author_key],
             label="Try an example",
         )
 
@@ -417,7 +449,7 @@ def build_demo():
         text.change(fn=_count_chars, inputs=text, outputs=counter)
         btn.click(
             fn=generate,
-            inputs=[text, mode, voice, voice_b, speed, mix],
+            inputs=[text, mode, voice, voice_b, speed, mix, author_key],
             outputs=audio,
             api_name="generate",
         )
