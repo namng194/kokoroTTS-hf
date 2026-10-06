@@ -1,8 +1,7 @@
 """Cross-origin access for the browser Studio page.
 
-The static HF Space (https, arbitrary origin) must be able to call this
-backend (localhost Docker, PRO Space, ZeroGPU) straight from the visitor's
-browser. Two browser gates apply:
+The static gallery page (https, arbitrary origin) must be able to call this
+backend straight from the visitor's browser. Two browser gates apply:
 
 1. CORS preflight: ``POST /tts/generate`` with ``Content-Type:
    application/json`` triggers an ``OPTIONS`` preflight. Without ACAO

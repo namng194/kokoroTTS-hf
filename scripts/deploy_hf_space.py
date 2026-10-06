@@ -1,23 +1,18 @@
 #!/usr/bin/env python3
 """Create or update a Hugging Face Space for KokoroTTS-HF.
 
-Flavours:
-  docker  - full product (browser UI + OpenAI/native APIs), CPU-optimized.
-            Uploads Dockerfile.hf as Dockerfile + runtime files.
-  gradio  - lightweight free-CPU demo (spaces/gradio_app.py).
-  static  - free-tier voice gallery (examples/ page + mp3s, no backend).
-            The only flavour that works without a PRO subscription.
+Flavours (all run on Space CPU):
+  gradio  - full 70-voice demo (spaces/gradio_app.py).
+  static  - voice gallery (examples/ page, no backend).
 
 Auth: read from HF_TOKEN env var (or --token, never commit it).
-The bundled HF token in the original request is treated as compromised the
-moment it was pasted into chat: rotate it at
+If a token was ever pasted into chat, treat it as compromised: rotate it at
 https://huggingface.co/settings/tokens and use the fresh value here.
 
 Examples:
   export HF_TOKEN="hf_..."
-  python scripts/deploy_hf_space.py --flavour docker --space-id YOU/kokorotts-hf
-  python scripts/deploy_hf_space.py --flavour docker --space-id YOU/kokorotts-hf --dry-run
-  python scripts/deploy_hf_space.py --flavour gradio --space-id YOU/kokorotts-hf-demo
+  python scripts/deploy_hf_space.py --flavour gradio --space-id YOU/kokorotts-hf
+  python scripts/deploy_hf_space.py --flavour gradio --space-id YOU/kokorotts-hf --dry-run
 """
 
 from __future__ import annotations
@@ -30,17 +25,6 @@ import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-
-DOCKER_FILES = [
-    ("Dockerfile.hf", "Dockerfile"),
-    ("requirements-hf.txt", "requirements-hf.txt"),
-    ("pyproject.toml", "pyproject.toml"),
-    ("VERSION", "VERSION"),
-    ("LICENSE", "LICENSE"),
-    ("THIRD_PARTY_NOTICES.md", "THIRD_PARTY_NOTICES.md"),
-    ("spaces/README-docker.md", "README.md"),
-]
-DOCKER_DIRS = ["kokorotts", "assets", "scripts"]
 
 GRADIO_FILES = [
     ("spaces/gradio_app.py", "app.py"),
@@ -55,14 +39,8 @@ GRADIO_DIRS = ["kokorotts"]
 
 # spaces/requirements-gradio.txt references ../requirements-hf.txt, which
 # breaks once staged flat at the Space root. Flatten it at stage time.
-# torch_variant="cpu" (default, Dockerfile.hf parity) or "cuda" (ZeroGPU
-# GPU inference: cu130 torch + the nvidia/cuda/triton stack from the GPU
-# requirements.txt, keeping the gradio-compat holds).
 GRADIO_PIN_FILE = "spaces/requirements-gradio.txt"
 HF_REQUIREMENTS_FILE = "requirements-hf.txt"
-GPU_REQUIREMENTS_FILE = "requirements.txt"
-CUDA_STACK_PREFIXES = ("nvidia-", "cuda-", "triton==")
-CUDA_INDEX = "--extra-index-url https://download.pytorch.org/whl/cu130"
 
 
 def split_requirement_lines(path: str) -> tuple[list[str], list[str]]:
@@ -80,35 +58,8 @@ def split_requirement_lines(path: str) -> tuple[list[str], list[str]]:
     return index_lines, package_lines
 
 
-def flatten_gradio_requirements(torch_variant: str = "cpu") -> str:
-    if torch_variant not in ("cpu", "cuda"):
-        raise ValueError("torch_variant must be 'cpu' or 'cuda'")
+def flatten_gradio_requirements() -> str:
     index_lines, lines = split_requirement_lines(HF_REQUIREMENTS_FILE)
-    if torch_variant == "cuda":
-        # CUDA torch lives on a different index; drop the CPU index so pip
-        # never mixes CUDA/CPU wheels.
-        index_lines = []
-    if torch_variant == "cuda":
-        _, gpu_lines = split_requirement_lines(GPU_REQUIREMENTS_FILE)
-        cuda_stack = [
-            line for line in gpu_lines
-            if line.startswith(CUDA_STACK_PREFIXES)
-        ]
-        cuda_torch_pinned = next(
-            line for line in gpu_lines
-            if line.startswith("torch==") and "+cu" in line
-        )
-        # ZeroGPU validates the torch pin against a supported-versions list
-        # and rejects local segments ("2.11.0+cu130"); the bare version
-        # still resolves to the cu130 wheel on the cu130-only index.
-        cuda_torch = cuda_torch_pinned.split("+")[0]
-        lines = [
-            line for line in lines
-            if not line.startswith("torch==")
-        ]
-        lines.append(cuda_torch)
-        lines.extend(cuda_stack)
-        index_lines.append(CUDA_INDEX)
     for raw in (REPO_ROOT / GRADIO_PIN_FILE).read_text(encoding="utf-8").splitlines():
         stripped = raw.strip()
         if stripped and not stripped.startswith(("-r ", "#")):
@@ -143,16 +94,13 @@ def build_staging_static(dest: Path) -> list[str]:
     return staged
 
 
-def build_staging(flavour: str, dest: Path, torch_variant: str = "cpu") -> list[str]:
-    files = DOCKER_FILES if flavour == "docker" else GRADIO_FILES
-    dirs = DOCKER_DIRS if flavour == "docker" else GRADIO_DIRS
+def build_staging(flavour: str, dest: Path) -> list[str]:
+    files = GRADIO_FILES
+    dirs = GRADIO_DIRS
     staged: list[str] = []
     for src, name in files:
         src_path = REPO_ROOT / src
         if not src_path.exists():
-            # install_open_jtalk_dictionary.py lives under scripts/ and is
-            # referenced by Dockerfile.hf; keep the tree importable instead
-            # of failing when optional files are absent.
             if src_path.name == ".gitkeep":
                 continue
             raise FileNotFoundError(f"Required file missing: {src}")
@@ -167,14 +115,14 @@ def build_staging(flavour: str, dest: Path, torch_variant: str = "cpu") -> list[
         staged.append(dirname + "/")
     if flavour == "gradio":
         (dest / "requirements.txt").write_text(
-            flatten_gradio_requirements(torch_variant), encoding="utf-8"
+            flatten_gradio_requirements(), encoding="utf-8"
         )
     return staged
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Deploy KokoroTTS-HF to HF Spaces.")
-    parser.add_argument("--flavour", choices=["docker", "gradio", "static"], default="docker")
+    parser.add_argument("--flavour", choices=["gradio", "static"], default="gradio")
     parser.add_argument("--space-id", required=True, help="e.g. YOU/kokorotts-hf")
     parser.add_argument("--token", default=os.getenv("HF_TOKEN"), help="defaults to $HF_TOKEN")
     parser.add_argument("--dry-run", action="store_true", help="stage files only, no upload")
@@ -183,11 +131,8 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
                              "(for manual web drag-drop upload); implies no upload")
     parser.add_argument("--private", action="store_true", help="create a private Space")
     parser.add_argument("--hardware", default="",
-                        help="Space hardware, e.g. zero-a10g (free serverless GPU) "
-                             "or cpu-basic. Empty keeps the account default.")
-    parser.add_argument("--torch", choices=["cpu", "cuda"], default="cpu",
-                        help="torch build for the gradio bundle: cpu (default) or "
-                             "cuda (required for @spaces.GPU on ZeroGPU)")
+                        help="Space hardware, e.g. cpu-basic. "
+                             "Empty keeps the account default.")
     return parser.parse_args(argv)
 
 
@@ -202,7 +147,7 @@ def main(argv: list[str] | None = None) -> int:
         staged = (
             build_staging_static(dest)
             if args.flavour == "static"
-            else build_staging(args.flavour, dest, args.torch)
+            else build_staging(args.flavour, dest)
         )
         print(f"flavour: {args.flavour}")
         print(f"staged {len(staged)} entries into {dest}:")
@@ -215,7 +160,7 @@ def main(argv: list[str] | None = None) -> int:
         staged = (
             build_staging_static(dest)
             if args.flavour == "static"
-            else build_staging(args.flavour, dest, args.torch)
+            else build_staging(args.flavour, dest)
         )
         print(f"flavour: {args.flavour}")
         print(f"space:   {args.space_id}")

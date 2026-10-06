@@ -11,11 +11,9 @@ WebGPU/WASM, verified end-to-end in Node against the same model). No quota,
 no uploads, offline after the ~90MB first download. English voices fully
 supported in-browser.
 
-> Server-GPU Spaces were retired from this project's free-tier strategy:
-> free ZeroGPU quota (≈5 min/day) cannot sustain a public demo, and hosted
-> CPU Gradio/Docker Spaces need PRO. The Gradio (`--flavour gradio`) and
-> Docker (`Dockerfile.hf`) flavours below remain ready for PRO workspaces
-> and self-hosting (CPU inference verified locally: 0 MB VRAM).
+> Strategy: every Space flavour in this repo runs on Space CPU.
+> The Gradio demo (`--flavour gradio`) serves all 70 voices with
+> `device=cpu` and `KOKOROTTS_PRELOAD=all` (verified: 0 MB VRAM).
 
 ### Voice blending (KokoroTTS-HF exclusive)
 
@@ -31,21 +29,12 @@ curl -X POST "http://localhost:7860/tts/blend" \
 
 Cross-family pairs return HTTP 400 (different weight spaces cannot mix).
 
-> Pricing reality (Oct 2026): Gradio/Docker Spaces on hosted CPU now require
-> a PRO subscription (creation fails with 402 otherwise). **ZeroGPU
-> (`zero-a10g`) still works on free accounts** and is the recommended hosted
-> inference target: it mandates `@spaces.GPU` (hence `--torch cuda`) and
-> Python 3.10 on the builder (hence the held-back pins in
-> `requirements-hf.txt` plus `spaces/packages.txt` for the source-only
-> pyopenjtalk build).
-
-Three supported flavours. Pick one:
+Two supported flavours. Pick one:
 
 | Flavour | SDK | Best for | Cold start | RAM (typical) |
 |---|---|---|---|---|
-| **Static gallery** (live, free) | `static` | Public voice previews, zero backend cost | instant | ~0 |
-| **Docker** (needs PRO hosted) | `docker` | Full product: browser workspace + OpenAI-compatible + native APIs, streaming, 70 voices | ~1–3 min first pull/build | ~2–4 GB |
-| **Gradio demo** (needs PRO hosted) | `gradio` | One-click CPU demo, smallest dynamic footprint | ~30–60 s + model download | ~1–2 GB |
+| **Static gallery** | `static` | Public voice previews, zero backend cost | instant | ~0 |
+| **Gradio demo** | `gradio` | Full 70-voice CPU synthesis in one click | ~30–60 s + model download | ~1–2 GB |
 
 ## Option 0 — Static gallery Space (free, live)
 
@@ -61,73 +50,39 @@ MP3s, and the two small referenced assets — then creates/uploads the Space.
 Note the serving subdomain for static Spaces ends in
 `.static.hf.space`, e.g. `https://YOU-kokorotts-hf.static.hf.space/`.
 
-Both are CPU-first so they run on the free tier. Kokoro-82M (~82M params) is
-lightweight by TTS standards: CPU inference works, GPU just makes it faster.
+Both flavours are CPU-first. Kokoro-82M (~82M params) is
+lightweight by TTS standards: CPU inference works end to end.
 No VRAM tuning needed on Spaces; locally an 8GB card (e.g. RTX 3070 Ti) is
 plenty — see "Local VRAM notes" below.
 
-## Option A — Docker Space (recommended)
+## Option A — Gradio demo Space (CPU, full 70 voices)
 
-Serves the exact same FastAPI + browser UI as local Docker runs.
-
-1. Create a Space:
-   - Go to <https://huggingface.co/new-space>
-   - Name: e.g. `kokorotts-hf`, SDK: **Docker**, hardware: **CPU Basic** (free).
-2. Upload the Space files. Easiest: use the helper script (needs an `HF_TOKEN`
+1. Create a Space with SDK **Gradio**, hardware **CPU**.
+2. Upload the bundle with the helper (needs an `HF_TOKEN`
    env var with `write` scope — never commit the token):
    ```bash
    export HF_TOKEN="hf_..."          # write-access token, kept out of git
-   python scripts/deploy_hf_space.py --flavour docker --space-id <you>/kokorotts-hf
+   python scripts/deploy_hf_space.py --flavour gradio --space-id <you>/kokorotts-hf
    ```
-   What gets uploaded: `Dockerfile.hf` (as `Dockerfile`), `requirements-hf.txt`,
-   `kokorotts/`, `assets/`, `pyproject.toml`, `VERSION`, `LICENSE`,
-   `THIRD_PARTY_NOTICES.md`, and the Docker Space `README.md` frontmatter.
+   What gets uploaded: `spaces/gradio_app.py` (as `app.py`),
+   `spaces/requirements-gradio.txt` (flattened as `requirements.txt`),
+   `requirements-hf.txt`, `spaces/packages.txt` (espeak-ng/ffmpeg toolchains),
+   `kokorotts/`, `VERSION`, `LICENSE`, and the Space `README.md` frontmatter.
 3. The Space builds automatically and serves port `7860`:
    - UI: `https://<you>-kokorotts-hf.hf.space/`
-   - Health: `/health/ready` · Docs: `/tts/docs`
-   - OpenAI-compatible: `POST /v1/audio/speech`
-   ```bash
-   curl -X POST "https://<you>-kokorotts-hf.hf.space/v1/audio/speech" \
-     -H "Content-Type: application/json" \
-     -d '{"model":"kokoro","input":"Hello from Spaces.","voice":"af_heart"}' \
-     -o output.mp3
-   ```
+4. Open the Space, type text, pick any of the 70 voices grouped by
+   language, press **Generate**. Blend mode mixes two same-family voices.
 
 Notes:
-- First generation downloads weights (~300MB for Kokoro-82M + voice packs)
-  into `/data/hf-cache` (the only persistent dir on Spaces). Later requests
-  reuse them.
-- **Lean boot**: the Space image sets `KOKOROTTS_PRELOAD=standard`, so it
-  boots with the 54 standard voices eager and loads the German/Vietnamese
-  checkpoints only when you enable those families (System tab → model packs,
-  or `PUT /system/settings/model-families`). Choices persist in `/data`.
-  Set `KOKOROTTS_PRELOAD=all` for the full 70-voice eager boot, or `lazy`
-  for the smallest possible cold start (every voice loads on first use).
-- **Abuse guard**: `KOKOROTTS_MAX_CHARS=5000` rejects oversized requests
-  with HTTP 400 (OpenAI-shaped error on `/v1/*`). Unset it for unlimited,
-  exactly like local Docker runs.
-- Optional env vars on the Space: `KOKOROTTS_API_KEY` (Bearer auth for
-  `/v1/*`), `HF_TOKEN` (only if a gated asset ever needs it — default assets
-  are public, leave unset).
+- First generation downloads weights (~300MB for Kokoro-82M + voice packs);
+  later requests reuse the cache.
+- **Full catalogue boot**: the Space image sets `KOKOROTTS_PRELOAD=all`, so
+  all 70 voices (standard + German + Vietnamese families) are served.
+  `KOKOROTTS_MAX_CHARS` guards oversized requests with HTTP 400.
 - Upgrades: re-run the deploy script; the Space rebuilds.
-- ZeroGPU/GPU upgrade (paid): the same image runs, just faster. If you switch
-  a Space to GPU hardware, set `KOKOROTTS_DEVICE=auto` in the Space secrets to
-  let it use CUDA; on CPU hardware keep `cpu` (default in `Dockerfile.hf`).
-
-## Option B — Gradio demo Space (free CPU, minimal)
-
-1. Create a Space with SDK **Gradio**, hardware **CPU Basic**.
-2. Upload `spaces/gradio_app.py`, `spaces/requirements-gradio.txt` (as
-   `requirements.txt`), `requirements-hf.txt`, `kokorotts/`, `VERSION`,
-   `LICENSE`, and `spaces/README.md` (as `README.md`):
-   ```bash
-   export HF_TOKEN="hf_..."
-   python scripts/deploy_hf_space.py --flavour gradio --space-id <you>/kokorotts-hf-demo
-   ```
-3. Open the Space, type text, pick a starter voice, press **Generate**.
 
 Limits of the demo flavour: WAV output only, no streaming, no OpenAI API,
-one request at a time. It is a teaser for the Docker flavour.
+one request at a time.
 
 ## Local VRAM notes (RTX 3070 Ti 8GB and similar)
 
@@ -157,18 +112,16 @@ once, ~330MB for the standard family):
 
 Cold family/model loads dominate; warm synthesis runs ~0.2–3x realtime on
 CPU. Conclusion for constrained hosts: CPU inference is slow but fully
-working — a valid fallback when no GPU and no ZeroGPU quota remain.
-The `spaces/gradio_app.py` auto-selects CUDA when present, CPU otherwise.
+working. `spaces/gradio_app.py` always runs inference with `device="cpu"`.
 
 ## Troubleshooting
 
-- **Build OOM on free tier**: use the Gradio flavour, or keep the Docker
-  flavour but avoid baking weights into the image (this repo's `Dockerfile.hf`
-  already downloads lazily — do not `COPY` model files into it).
+- **Build OOM**: keep the gradio bundle lean (this repo's Space requirements
+  already download lazily — do not bake model files into it).
 - **First request slow**: expected — weights download once, then cache.
 - **401 from api/whoami with a fresh token**: create a new fine-grained token
   with `Make calls to the serverless Inference API` off but **Spaces write**
   on, and retry. Never paste tokens into Issues.
 - **German/Vietnamese voices fail on a fresh Space**: they lazy-load extra
   checkpoints (kikiri-tts / ContextBoxAI). Generate once per family to warm
-  the cache; check `/tts/status` for loaded models.
+  the cache.

@@ -1,7 +1,7 @@
-"""Static checks for the Hugging Face Spaces flavour.
+"""Static checks for the Hugging Face Spaces bundle.
 
-Runs with stdlib only: no torch/fastapi/gradio imports, no model downloads,
-no GPU. Safe on constrained machines (e.g. 8GB VRAM laptops) and in CI.
+Runs with stdlib only: no torch/fastapi/gradio imports, no model downloads.
+Safe on constrained machines and in CI.
 """
 
 import ast
@@ -94,53 +94,51 @@ class TestGradioApp(unittest.TestCase):
         self.assertIn("def generate", src)
         self.assertIn("def get_runtime", src)
         self.assertIn("voice_choices", src)
-        # Free-CPU contract: no @spaces.GPU (needs paid/ZeroGPU hardware),
-        # named API for browser clients, families auto-enable on demand.
+        # CPU contract: no spaces shim, named API for browser clients,
+        # families auto-enable on demand.
         self.assertNotIn("@spaces.GPU", src)
+        self.assertNotIn("import spaces", src)
         self.assertIn('api_name="generate"', src)
         self.assertIn("set_served_model_families", src)
+
+    def test_production_ui_contract(self):
+        src = read("spaces/gradio_app.py")
+        # Public API stays stable for API clients.
+        self.assertIn('api_name="generate"', src)
+        self.assertIn(
+            "inputs=[text, mode, voice, voice_b, speed, mix]", src
+        )
+        # Production UX: language filter, char counter, examples, queue.
+        self.assertIn("def language_options", src)
+        self.assertIn("def voices_for_language", src)
+        self.assertIn("Language filter", src)
+        self.assertIn("gr.Examples", src)
+        self.assertIn("queue(max_size=", src)
 
     def test_space_frontmatter(self):
         readme = read("spaces/README.md")
         self.assertIn("sdk: gradio", readme)
         # Must match the staged filename (deploy uploads gradio_app.py as app.py).
         self.assertIn("app_file: app.py", readme)
-        docker_readme = read("spaces/README-docker.md")
-        self.assertIn("sdk: docker", docker_readme)
-        self.assertIn("app_port: 7860", docker_readme)
 
     def test_space_frontmatter_valid_per_hf_rules(self):
         import re
         allowed_colors = {
             "red", "yellow", "green", "blue", "indigo", "purple", "pink", "gray",
         }
-        for name in ("spaces/README.md", "spaces/README-docker.md",
-                     "spaces/README-static.md"):
+        for name in ("spaces/README.md", "spaces/README-static.md"):
             frontmatter = read(name).split("---")[1]
             color = re.search(r"^colorFrom:\s*(\S+)", frontmatter, re.M).group(1)
             self.assertIn(color, allowed_colors, f"{name}: bad colorFrom")
             desc = re.search(r"^short_description:\s*(.+)$", frontmatter, re.M).group(1)
             self.assertLessEqual(len(desc), 60, f"{name}: short_description too long")
-            if "gradio" in name and "static" not in name:
+            if "static" not in name:
                 self.assertIn("sdk: gradio", frontmatter)
-            if "docker" in name:
-                self.assertIn("sdk: docker", frontmatter)
-            if "static" in name:
+            else:
                 self.assertIn("sdk: static", frontmatter)
 
 
 class TestDeployHelper(unittest.TestCase):
-    def test_dry_run_docker(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            proc = subprocess.run(
-                [sys.executable, "scripts/deploy_hf_space.py",
-                 "--flavour", "docker", "--space-id", "local/kokorotts-hf",
-                 "--dry-run"],
-                cwd=REPO_ROOT, capture_output=True, text=True, timeout=120,
-            )
-        self.assertEqual(proc.returncode, 0, proc.stderr)
-        self.assertIn("Dockerfile", proc.stdout)
-
     def test_dry_run_gradio(self):
         proc = subprocess.run(
             [sys.executable, "scripts/deploy_hf_space.py",
@@ -167,30 +165,28 @@ class TestDeployHelper(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertIn("app.py", proc.stdout)
 
-    def test_cuda_flatten_uses_cu130_torch(self):
+    def test_staged_requirements_cpu_only(self):
         import os
         with tempfile.TemporaryDirectory() as tmp:
             staged = os.path.join(tmp, "space")
             proc = subprocess.run(
                 [sys.executable, "scripts/deploy_hf_space.py",
                  "--flavour", "gradio", "--space-id", "local/x",
-                 "--torch", "cuda", "--stage-dir", staged],
+                 "--stage-dir", staged],
                 cwd=REPO_ROOT, capture_output=True, text=True, timeout=120,
             )
             self.assertEqual(proc.returncode, 0, proc.stderr)
             from pathlib import Path
             reqs = (Path(staged) / "requirements.txt").read_text(encoding="utf-8")
         self.assertIn("torch==2.11.0\n", reqs)
-        self.assertNotIn("+cu130", reqs)
-        self.assertIn("download.pytorch.org/whl/cu130", reqs)
-        self.assertNotIn("download.pytorch.org/whl/cpu", reqs)
-        self.assertIn("spaces==0.51.3", reqs)
+        self.assertIn("download.pytorch.org/whl/cpu", reqs)
+        self.assertNotIn("spaces==", reqs)
 
     def test_rejects_missing_token_without_dry_run(self):
         env = {k: v for k, v in __import__("os").environ.items() if k != "HF_TOKEN"}
         proc = subprocess.run(
             [sys.executable, "scripts/deploy_hf_space.py",
-             "--flavour", "docker", "--space-id", "local/kokorotts-hf"],
+             "--flavour", "gradio", "--space-id", "local/kokorotts-hf"],
             cwd=REPO_ROOT, capture_output=True, text=True, timeout=120, env=env,
         )
         self.assertEqual(proc.returncode, 2)

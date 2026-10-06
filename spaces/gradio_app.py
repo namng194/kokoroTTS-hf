@@ -1,26 +1,17 @@
-"""Full-catalogue Gradio demo for Hugging Face Spaces (free CPU tier).
+"""Full-catalogue Gradio demo for Hugging Face Spaces.
 
-This is the *demo* Space flavour (``sdk: gradio``). Unlike a minimal teaser,
-it serves the complete 70-voice catalogue grouped by language and honors the
-constrained-host profiles from ``kokorotts.space``:
-
-- ``KOKOROTTS_PRELOAD``: ``all`` (default) | ``standard`` | ``lazy``
-- ``KOKOROTTS_MAX_CHARS``: per-request text guard for public deployments
-
-The recommended production flavour remains the Docker Space (``Dockerfile.hf``)
-with the full browser workspace + OpenAI-compatible API; see
-``docs/HF_SPACES.md``. Both flavours share one inference stack, so a voice
-that works here works identically there.
-
-Run locally (CPU, no GPU touched):
-    pip install -r spaces/requirements-gradio.txt
-    python spaces/gradio_app.py
+Runs entirely on Space CPU. Serves the complete 70-voice catalogue.
 """
 
 from __future__ import annotations
 
 import os
 import threading
+
+# Hard defaults: full 70 voices, inference device is always CPU.
+os.environ.setdefault("KOKOROTTS_PRELOAD", "all")
+os.environ.setdefault("KOKOROTTS_DEVICE", "cpu")
+os.environ.setdefault("KOKOROTTS_HF_SPACE", "1")
 
 from kokorotts.catalog import (
     LANGUAGE_CHOICES,
@@ -72,16 +63,15 @@ def get_runtime():
         _runtime = InferenceRuntime(
             settings=RuntimeSettingsStore(), **build_runtime_kwargs()
         )
+        try:
+            _runtime.set_served_model_families(ALL_FAMILIES)
+        except Exception:
+            pass
         return _runtime
 
 
 def _inference_device() -> str:
-    try:
-        import torch
-
-        return "cuda:0" if torch.cuda.is_available() else "cpu"
-    except ImportError:
-        return "cpu"
+    return "cpu"
 
 
 ALL_FAMILIES = list(MODEL_FAMILY_CHOICES.keys())
@@ -134,61 +124,187 @@ def generate(text: str, mode: str, voice: str, voice_b: str, speed: float, mix: 
     return SAMPLE_RATE, result.audio
 
 
+_LANG_ALL = "All languages"
+
+_BANNER_CSS = """
+.kokoro-banner {
+  background: linear-gradient(135deg, #4c1d95 0%, #6d28d9 55%, #2563eb 100%);
+  border-radius: 16px;
+  padding: 28px 32px;
+  color: #fff;
+  margin-bottom: 16px;
+}
+.kokoro-banner h1 { margin: 0 0 6px 0; font-size: 1.9rem; }
+.kokoro-banner p { margin: 0; opacity: 0.92; }
+.kokoro-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.kokoro-badge {
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  padding: 4px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.kokoro-footer { text-align: center; opacity: 0.75; font-size: 0.85rem; }
+"""
+
+
+def language_options() -> list[str]:
+    """Dropdown options: every language plus an unfiltered entry."""
+    return [_LANG_ALL] + [
+        f"{LANGUAGE_CHOICES[code]} ({code})" for code in LANGUAGE_CHOICES
+    ]
+
+
+def voices_for_language(option: str) -> list[tuple[str, str]]:
+    """Voice (label, id) pairs filtered by a language dropdown option."""
+    if option == _LANG_ALL:
+        return voice_choices()
+    code = option.rsplit("(", 1)[-1].rstrip(")")
+    return [
+        (label, voice_id)
+        for label, voice_id in voice_choices()
+        if voice_language(voice_id) == code
+    ]
+
+
 def build_demo():
     import gradio as gr
 
     summary = profile_summary()
     limit = summary["max_chars"]
     guard_line = (
-        f"Max {limit} characters per request on this deployment."
+        f"Limit: {limit} characters per request."
         if limit else "No per-request character limit on this deployment."
     )
+    all_voices = voice_choices()
 
-    with gr.Blocks(title="KokoroTTS-HF (70 voices, CPU)") as demo:
-        gr.Markdown(
-            "# KokoroTTS-HF community demo\n"
-            "Full 70-voice catalogue on CPU. For the browser workspace + "
-            "OpenAI-compatible API, use the Docker Space flavour "
-            "(`docs/HF_SPACES.md`).\n\n"
-            f"{guard_line} Profile: `{summary['preload']}`.\n\n"
-            "Based on Hangry Labs KokoroTTS (Apache-2.0) and hexgrad Kokoro."
+    theme = gr.themes.Soft(primary_hue="indigo", secondary_hue="slate")
+    with gr.Blocks(
+        title="KokoroTTS-HF — 70 voices on CPU",
+        theme=theme,
+        css=_BANNER_CSS,
+    ) as demo:
+        gr.HTML(
+            "<div class='kokoro-banner'>"
+            "<h1>🔊 KokoroTTS-HF</h1>"
+            "<p>Full 70-voice text-to-speech catalogue running on Space CPU. "
+            "Type text, pick a voice, press Generate.</p>"
+            "<div class='kokoro-badges'>"
+            "<span class='kokoro-badge'>70 voices</span>"
+            "<span class='kokoro-badge'>11 languages</span>"
+            "<span class='kokoro-badge'>CPU inference</span>"
+            "<span class='kokoro-badge'>24 kHz output</span>"
+            "</div></div>"
         )
+
         with gr.Row():
-            text = gr.Textbox(label="Text", value=DEFAULT_TEXT, lines=5, max_lines=12)
-        with gr.Row():
-            mode = gr.Radio(
-                label="Mode", choices=["Single", "Blend"], value="Single"
-            )
-            voice = gr.Dropdown(
-                label="Voice A (70, grouped by language)",
-                choices=voice_choices(),
-                value=DEFAULT_VOICE,
-            )
-        with gr.Row(visible=False) as blend_row:
-            voice_b = gr.Dropdown(
-                label="Voice B (must share A's model family)",
-                choices=voice_choices(),
-                value="af_bella",
-            )
-            mix = gr.Slider(
-                label="Mix: weight of voice B (0 = pure A, 1 = pure B)",
-                minimum=0.0, maximum=1.0, step=0.05, value=0.5,
-            )
-        with gr.Row():
-            speed = gr.Slider(
-                label="Speed", minimum=0.25, maximum=4.0, step=0.05, value=1.0
-            )
-        gr.Markdown(
-            "_Blend_ mixes two voices into a new synthetic speaker — "
-            "a KokoroTTS-HF exclusive."
+            with gr.Column(scale=3):
+                text = gr.Textbox(
+                    label="Text to speak",
+                    value=DEFAULT_TEXT,
+                    lines=5,
+                    max_lines=12,
+                    placeholder="Type or paste any text here…",
+                )
+                counter = gr.Markdown(f"_{len(DEFAULT_TEXT)} characters._")
+                with gr.Row():
+                    mode = gr.Radio(
+                        label="Mode", choices=["Single", "Blend"], value="Single"
+                    )
+                    lang = gr.Dropdown(
+                        label="Language filter",
+                        choices=language_options(),
+                        value=_LANG_ALL,
+                    )
+                voice = gr.Dropdown(
+                    label="Voice A",
+                    choices=all_voices,
+                    value=DEFAULT_VOICE,
+                    filterable=True,
+                )
+                with gr.Row(visible=False) as blend_row:
+                    voice_b = gr.Dropdown(
+                        label="Voice B (must share A's model family)",
+                        choices=all_voices,
+                        value="af_bella",
+                        filterable=True,
+                    )
+                    mix = gr.Slider(
+                        label="Mix: weight of voice B (0 = pure A, 1 = pure B)",
+                        minimum=0.0, maximum=1.0, step=0.05, value=0.5,
+                    )
+                with gr.Row():
+                    speed = gr.Slider(
+                        label="Speed", minimum=0.25, maximum=4.0,
+                        step=0.05, value=1.0,
+                    )
+                with gr.Row():
+                    btn = gr.Button("🔊 Generate", variant="primary", scale=2)
+                    clear = gr.ClearButton([text], value="Clear text")
+
+            with gr.Column(scale=2):
+                audio = gr.Audio(label="Output (24 kHz WAV)", interactive=False)
+                gr.Markdown(
+                    f"_{guard_line} Profile: `{summary['preload']}`._"
+                )
+                with gr.Accordion("How voice blending works", open=False):
+                    gr.Markdown(
+                        "_Blend_ mixes two voices of the **same model family** "
+                        "into a new synthetic speaker — a KokoroTTS-HF "
+                        "exclusive. Pick **Blend** mode, choose voice B, and "
+                        "set how much of B to mix in."
+                    )
+                with gr.Accordion("Tips for best quality", open=False):
+                    gr.Markdown(
+                        "- Short sentences synthesise fastest.\n"
+                        "- Keep speed between 0.9 and 1.1 for natural pacing.\n"
+                        "- Vietnamese, German, Japanese and Chinese voices "
+                        "load their model pack on first use — the first "
+                        "request takes longer, later ones are fast."
+                    )
+
+        gr.Examples(
+            examples=[
+                ["Hello from KokoroTTS-HF on Space CPU.", "Single", "af_heart", "af_bella", 1.0, 0.5],
+                ["Xin chào, đây là giọng đọc tiếng Việt chạy hoàn toàn trên CPU.", "Single", "diem_trinh", "af_bella", 1.0, 0.5],
+                ["Two voices become one.", "Blend", "af_heart", "af_bella", 1.0, 0.5],
+            ],
+            inputs=[text, mode, voice, voice_b, speed, mix],
+            label="Try an example",
         )
-        btn = gr.Button("Generate", variant="primary")
-        audio = gr.Audio(label="Output (24 kHz)")
+        gr.Markdown(
+            "<div class='kokoro-footer'>Based on Hangry Labs KokoroTTS "
+            "(Apache-2.0) and hexgrad Kokoro. German voices use kikiri-tts "
+            "checkpoints; Vietnamese uses the ContextBoxAI checkpoint.</div>"
+        )
 
         def _toggle_blend(selected: str):
             return gr.Row(visible=(selected == "Blend"))
 
+        def _filter_voices(option: str, current_a: str, current_b: str):
+            options = voices_for_language(option)
+            ids = {voice_id for _, voice_id in options}
+            keep_a = current_a if current_a in ids else (
+                options[0][1] if options else None
+            )
+            keep_b = current_b if current_b in ids else (
+                options[0][1] if options else None
+            )
+            return (
+                gr.Dropdown(choices=options, value=keep_a),
+                gr.Dropdown(choices=options, value=keep_b),
+            )
+
+        def _count_chars(value: str | None):
+            return f"_{len(value or '')} characters._"
+
         mode.change(fn=_toggle_blend, inputs=mode, outputs=blend_row)
+        lang.change(
+            fn=_filter_voices, inputs=[lang, voice, voice_b],
+            outputs=[voice, voice_b],
+        )
+        text.change(fn=_count_chars, inputs=text, outputs=counter)
         btn.click(
             fn=generate,
             inputs=[text, mode, voice, voice_b, speed, mix],

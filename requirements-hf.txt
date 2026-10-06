@@ -1,13 +1,10 @@
-# CPU-only dependency set for Hugging Face Spaces (free CPU tier).
-# Mirrors requirements.txt but:
-# - torch comes from the CPU index (no CUDA variant, no nvidia/cuda/triton stack)
+# Dependency set for Hugging Face Spaces (CPU).
+# - torch comes from the CPU index
 # - pydantic is held at 2.11.x because gradio 5.39 requires pydantic<2.12;
 #   starlette is held at 0.52.x because gradio 5.39 requires starlette<1.0;
 #   websockets is held at 15.0.x for gradio-client (<16.0);
 #   networkx/rpds-py are held back because the Spaces builder runs
 #   Python <3.12 (verified resolution on 3.10/3.11/3.12)
-#   (GPU requirements.txt keeps newer pins for the Docker product)
-# - everything else keeps the exact pinned versions for parity with Docker GPU builds.
 --extra-index-url https://download.pytorch.org/whl/cpu
 
 addict==2.4.0
