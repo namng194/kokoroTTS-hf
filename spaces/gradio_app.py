@@ -168,6 +168,7 @@ _BANNER_CSS = """
   font-family: 'Be Vietnam Pro', 'Inter', system-ui, -apple-system,
     'Segoe UI', sans-serif !important;
 }
+#sample-voice-list { max-height: 300px; overflow-y: auto; }
 """
 
 
@@ -224,7 +225,7 @@ def build_demo():
             "<div class='kokoro-banner'>"
             "<h1>🔊 KokoroTTS-HF</h1>"
             "<p>Full 70-voice text-to-speech catalogue running on Space CPU. "
-            "Step 1: audition sample files. Step 2: generate your own audio.</p>"
+            "Generate your audio above, audition every sample file below.</p>"
             "<div class='kokoro-badges'>"
             "<span class='kokoro-badge'>70 voices</span>"
             "<span class='kokoro-badge'>11 languages</span>"
@@ -233,133 +234,132 @@ def build_demo():
             "</div></div>"
         )
 
-        with gr.Tabs():
-            with gr.Tab("🎧 1 · Nghe thử giọng mẫu"):
-                gr.Markdown(
-                    "_Browse the pre-generated sample file of every voice — "
-                    "plays instantly, no compute used._"
+        gr.Markdown("## 🔊 Tạo giọng đọc")
+        gr.Markdown(
+            "_Synthesise any text on Space CPU. Type text, pick a voice, "
+            "press Generate._"
+        )
+        with gr.Row():
+            with gr.Column(scale=3):
+                text = gr.Textbox(
+                    label="Text to speak",
+                    value=DEFAULT_TEXT,
+                    lines=5,
+                    max_lines=12,
+                    placeholder="Type or paste any text here…",
+                )
+                counter = gr.Markdown(
+                    f"_{len(DEFAULT_TEXT)} characters._"
                 )
                 with gr.Row():
-                    lang_sample = gr.Dropdown(
+                    mode = gr.Radio(
+                        label="Mode",
+                        choices=["Single", "Blend"],
+                        value="Single",
+                    )
+                    lang = gr.Dropdown(
                         label="Language filter",
                         choices=language_options(),
                         value=_LANG_ALL,
                     )
-                    sample_voice = gr.Dropdown(
-                        label="Voice",
+                voice = gr.Dropdown(
+                    label="Voice A",
+                    choices=all_voices,
+                    value=DEFAULT_VOICE,
+                    filterable=True,
+                )
+                with gr.Row(visible=False) as blend_row:
+                    voice_b = gr.Dropdown(
+                        label="Voice B (must share A's model family)",
                         choices=all_voices,
-                        value=DEFAULT_VOICE,
+                        value="af_bella",
                         filterable=True,
                     )
+                    mix = gr.Slider(
+                        label="Mix: weight of voice B "
+                              "(0 = pure A, 1 = pure B)",
+                        minimum=0.0, maximum=1.0,
+                        step=0.05, value=0.5,
+                    )
                 with gr.Row():
-                    preview_btn = gr.Button(
-                        "🔈 Nghe thử", variant="secondary"
+                    speed = gr.Slider(
+                        label="Speed", minimum=0.25, maximum=4.0,
+                        step=0.05, value=1.0,
                     )
-                    use_voice_btn = gr.Button(
-                        "➡ Dùng giọng này để tạo",
-                        variant="primary",
+                with gr.Row():
+                    btn = gr.Button(
+                        "🔊 Generate", variant="primary", scale=2
                     )
+                    clear = gr.ClearButton([text], value="Clear text")
+
+            with gr.Column(scale=2):
+                audio = gr.Audio(
+                    label="Output (24 kHz WAV)", interactive=False
+                )
+                gr.Markdown(
+                    f"_{guard_line} Profile: `{summary['preload']}`._"
+                )
+                with gr.Accordion(
+                    "How voice blending works", open=False
+                ):
+                    gr.Markdown(
+                        "_Blend_ mixes two voices of the **same model "
+                        "family** into a new synthetic speaker — a "
+                        "KokoroTTS-HF exclusive. Pick **Blend** mode, "
+                        "choose voice B, and set how much of B to "
+                        "mix in."
+                    )
+                with gr.Accordion(
+                    "Tips for best quality", open=False
+                ):
+                    gr.Markdown(
+                        "- Short sentences synthesise fastest.\n"
+                        "- Keep speed between 0.9 and 1.1 for "
+                        "natural pacing.\n"
+                        "- Vietnamese, German, Japanese and Chinese "
+                        "voices load their model pack on first use — "
+                        "the first request takes longer, later ones "
+                        "are fast."
+                    )
+
+        gr.Examples(
+            examples=[
+                ["Hello from KokoroTTS-HF on Space CPU.", "Single", "af_heart", "af_bella", 1.0, 0.5],
+                ["Xin chào, đây là giọng đọc tiếng Việt chạy hoàn toàn trên CPU.", "Single", "diem_trinh", "af_bella", 1.0, 0.5],
+                ["Two voices become one.", "Blend", "af_heart", "af_bella", 1.0, 0.5],
+            ],
+            inputs=[text, mode, voice, voice_b, speed, mix],
+            label="Try an example",
+        )
+
+        gr.Markdown("---")
+        gr.Markdown("## 🎧 Nghe thử giọng mẫu")
+        gr.Markdown(
+            "_Pick a voice from the list — its bundled sample plays "
+            "below instantly, no compute used. Then use it in the "
+            "generator above._"
+        )
+        lang_sample = gr.Dropdown(
+            label="Language filter",
+            choices=language_options(),
+            value=_LANG_ALL,
+        )
+        with gr.Row():
+            with gr.Column(scale=2):
+                sample_voice = gr.Radio(
+                    label="Voices (click to audition)",
+                    choices=all_voices,
+                    value=DEFAULT_VOICE,
+                    elem_id="sample-voice-list",
+                )
+            with gr.Column(scale=3):
+                now_playing = gr.Markdown(
+                    f"_Now auditioning: **{DEFAULT_VOICE}**_"
+                )
                 preview = gr.Audio(
                     label="🎧 Voice sample (bundled file)",
                     interactive=False,
-                )
-
-            with gr.Tab("🔊 2 · Tạo giọng đọc"):
-                gr.Markdown(
-                    "_Synthesise any text on Space CPU with the voice "
-                    "selected below._"
-                )
-                with gr.Row():
-                    with gr.Column(scale=3):
-                        text = gr.Textbox(
-                            label="Text to speak",
-                            value=DEFAULT_TEXT,
-                            lines=5,
-                            max_lines=12,
-                            placeholder="Type or paste any text here…",
-                        )
-                        counter = gr.Markdown(
-                            f"_{len(DEFAULT_TEXT)} characters._"
-                        )
-                        with gr.Row():
-                            mode = gr.Radio(
-                                label="Mode",
-                                choices=["Single", "Blend"],
-                                value="Single",
-                            )
-                            lang = gr.Dropdown(
-                                label="Language filter",
-                                choices=language_options(),
-                                value=_LANG_ALL,
-                            )
-                        voice = gr.Dropdown(
-                            label="Voice A",
-                            choices=all_voices,
-                            value=DEFAULT_VOICE,
-                            filterable=True,
-                        )
-                        with gr.Row(visible=False) as blend_row:
-                            voice_b = gr.Dropdown(
-                                label="Voice B (must share A's model family)",
-                                choices=all_voices,
-                                value="af_bella",
-                                filterable=True,
-                            )
-                            mix = gr.Slider(
-                                label="Mix: weight of voice B "
-                                      "(0 = pure A, 1 = pure B)",
-                                minimum=0.0, maximum=1.0,
-                                step=0.05, value=0.5,
-                            )
-                        with gr.Row():
-                            speed = gr.Slider(
-                                label="Speed", minimum=0.25, maximum=4.0,
-                                step=0.05, value=1.0,
-                            )
-                        with gr.Row():
-                            btn = gr.Button(
-                                "🔊 Generate", variant="primary", scale=2
-                            )
-                            clear = gr.ClearButton([text], value="Clear text")
-
-                    with gr.Column(scale=2):
-                        audio = gr.Audio(
-                            label="Output (24 kHz WAV)", interactive=False
-                        )
-                        gr.Markdown(
-                            f"_{guard_line} Profile: `{summary['preload']}`._"
-                        )
-                        with gr.Accordion(
-                            "How voice blending works", open=False
-                        ):
-                            gr.Markdown(
-                                "_Blend_ mixes two voices of the **same model "
-                                "family** into a new synthetic speaker — a "
-                                "KokoroTTS-HF exclusive. Pick **Blend** mode, "
-                                "choose voice B, and set how much of B to "
-                                "mix in."
-                            )
-                        with gr.Accordion(
-                            "Tips for best quality", open=False
-                        ):
-                            gr.Markdown(
-                                "- Short sentences synthesise fastest.\n"
-                                "- Keep speed between 0.9 and 1.1 for "
-                                "natural pacing.\n"
-                                "- Vietnamese, German, Japanese and Chinese "
-                                "voices load their model pack on first use — "
-                                "the first request takes longer, later ones "
-                                "are fast."
-                            )
-
-                gr.Examples(
-                    examples=[
-                        ["Hello from KokoroTTS-HF on Space CPU.", "Single", "af_heart", "af_bella", 1.0, 0.5],
-                        ["Xin chào, đây là giọng đọc tiếng Việt chạy hoàn toàn trên CPU.", "Single", "diem_trinh", "af_bella", 1.0, 0.5],
-                        ["Two voices become one.", "Blend", "af_heart", "af_bella", 1.0, 0.5],
-                    ],
-                    inputs=[text, mode, voice, voice_b, speed, mix],
-                    label="Try an example",
+                    autoplay=True,
                 )
         gr.Markdown(
             "<div class='kokoro-footer'>Based on Hangry Labs KokoroTTS "
@@ -376,7 +376,13 @@ def build_demo():
             keep = current if current in ids else (
                 options[0][1] if options else None
             )
-            return gr.Dropdown(choices=options, value=keep)
+            return gr.Radio(choices=options, value=keep)
+
+        def _audition(selected: str):
+            return (
+                preview_voice(selected, 1.0),
+                f"_Now auditioning: **{selected}**_",
+            )
 
         def _filter_voices(option: str, current_a: str, current_b: str):
             options = voices_for_language(option)
@@ -395,30 +401,20 @@ def build_demo():
         def _count_chars(value: str | None):
             return f"_{len(value or '')} characters._"
 
-        def _use_sample_voice(selected: str):
-            return gr.Dropdown(value=selected)
-
         mode.change(fn=_toggle_blend, inputs=mode, outputs=blend_row)
         lang_sample.change(
             fn=_filter_sample_voices, inputs=[lang_sample, sample_voice],
             outputs=sample_voice,
+        )
+        sample_voice.change(
+            fn=_audition, inputs=sample_voice,
+            outputs=[preview, now_playing],
         )
         lang.change(
             fn=_filter_voices, inputs=[lang, voice, voice_b],
             outputs=[voice, voice_b],
         )
         text.change(fn=_count_chars, inputs=text, outputs=counter)
-        preview_btn.click(
-            fn=preview_voice,
-            inputs=[sample_voice, speed],
-            outputs=preview,
-            api_name="preview",
-        )
-        use_voice_btn.click(
-            fn=_use_sample_voice,
-            inputs=sample_voice,
-            outputs=voice,
-        )
         btn.click(
             fn=generate,
             inputs=[text, mode, voice, voice_b, speed, mix],

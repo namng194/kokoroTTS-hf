@@ -114,11 +114,15 @@ class TestGradioApp(unittest.TestCase):
         self.assertIn("Language filter", src)
         self.assertIn("gr.Examples", src)
         self.assertIn("queue(max_size=", src)
-        # Two-zone layout: sample tab separate from inference tab.
-        self.assertIn("Nghe thử giọng mẫu", src)
+        # Vertical layout: inference zone on top, one audition list below
+        # (hangry-labs pattern: single list + single player, no 70 players).
         self.assertIn("Tạo giọng đọc", src)
-        self.assertIn("gr.Tab", src)
-        self.assertIn("Dùng giọng này để tạo", src)
+        self.assertIn("Nghe thử giọng mẫu", src)
+        self.assertNotIn("gr.Tab", src)
+        self.assertNotIn("lang_voices", src)
+        self.assertIn("sample_voice = gr.Radio", src)
+        self.assertIn("Now auditioning", src)
+        self.assertIn("autoplay=True", src)
         self.assertIn("def sample_path_for_voice", src)
         self.assertIn("Nghe thử", src)
         self.assertIn("Be Vietnam Pro", src)
