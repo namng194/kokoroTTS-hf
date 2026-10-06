@@ -126,6 +126,29 @@ def generate(text: str, mode: str, voice: str, voice_b: str, speed: float, mix: 
 
 _LANG_ALL = "All languages"
 
+# Short preview sentence per language (kept tiny so previews render fast).
+_PREVIEW_TEXTS = {
+    "a": "Hello! This is a voice preview.",
+    "b": "Hello! This is a voice preview.",
+    "d": "Hallo! Dies ist eine Stimmprobe.",
+    "e": "¡Hola! Esta es una muestra de voz.",
+    "f": "Bonjour ! Ceci est un aperçu de voix.",
+    "h": "नमस्ते! यह आवाज़ का नमूना है।",
+    "i": "Ciao! Questa è un'anteprima della voce.",
+    "j": "こんにちは！音声のプレビューです。",
+    "p": "Olá! Esta é uma prévia de voz.",
+    "v": "Xin chào! Đây là giọng đọc mẫu.",
+    "z": "你好！这是语音预览。",
+}
+
+_FONT_HEAD = (
+    "<link rel='preconnect' href='https://fonts.googleapis.com'>"
+    "<link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>"
+    "<link href='https://fonts.googleapis.com/css2?"
+    "family=Be+Vietnam+Pro:wght@400;500;600;700&family=Inter:wght@400;500;600;700"
+    "&display=swap' rel='stylesheet'>"
+)
+
 _BANNER_CSS = """
 .kokoro-banner {
   background: linear-gradient(135deg, #4c1d95 0%, #6d28d9 55%, #2563eb 100%);
@@ -146,6 +169,10 @@ _BANNER_CSS = """
   font-weight: 600;
 }
 .kokoro-footer { text-align: center; opacity: 0.75; font-size: 0.85rem; }
+.gradio-container, .gradio-container * {
+  font-family: 'Be Vietnam Pro', 'Inter', system-ui, -apple-system,
+    'Segoe UI', sans-serif !important;
+}
 """
 
 
@@ -168,6 +195,16 @@ def voices_for_language(option: str) -> list[tuple[str, str]]:
     ]
 
 
+def preview_voice(voice: str, speed: float):
+    """Render a short fixed sample for quick voice auditioning."""
+    speed = max(0.25, min(4.0, float(speed or 1.0)))
+    sample = _PREVIEW_TEXTS.get(voice_language(voice), _PREVIEW_TEXTS["a"])
+    result = _synthesize(sample, voice, speed, None)
+    if result is None:
+        raise RuntimeError("Preview returned no audio.")
+    return SAMPLE_RATE, result.audio
+
+
 def build_demo():
     import gradio as gr
 
@@ -179,11 +216,16 @@ def build_demo():
     )
     all_voices = voice_choices()
 
-    theme = gr.themes.Soft(primary_hue="indigo", secondary_hue="slate")
+    theme = gr.themes.Soft(
+        primary_hue="indigo",
+        secondary_hue="slate",
+        font="Be Vietnam Pro",
+    )
     with gr.Blocks(
         title="KokoroTTS-HF — 70 voices on CPU",
         theme=theme,
         css=_BANNER_CSS,
+        head=_FONT_HEAD,
     ) as demo:
         gr.HTML(
             "<div class='kokoro-banner'>"
@@ -223,6 +265,9 @@ def build_demo():
                     value=DEFAULT_VOICE,
                     filterable=True,
                 )
+                preview_btn = gr.Button(
+                    "🔈 Nghe thử giọng", variant="secondary"
+                )
                 with gr.Row(visible=False) as blend_row:
                     voice_b = gr.Dropdown(
                         label="Voice B (must share A's model family)",
@@ -244,6 +289,10 @@ def build_demo():
                     clear = gr.ClearButton([text], value="Clear text")
 
             with gr.Column(scale=2):
+                preview = gr.Audio(
+                    label="🎧 Voice preview (tap Nghe thử)",
+                    interactive=False,
+                )
                 audio = gr.Audio(label="Output (24 kHz WAV)", interactive=False)
                 gr.Markdown(
                     f"_{guard_line} Profile: `{summary['preload']}`._"
@@ -305,6 +354,12 @@ def build_demo():
             outputs=[voice, voice_b],
         )
         text.change(fn=_count_chars, inputs=text, outputs=counter)
+        preview_btn.click(
+            fn=preview_voice,
+            inputs=[voice, speed],
+            outputs=preview,
+            api_name="preview",
+        )
         btn.click(
             fn=generate,
             inputs=[text, mode, voice, voice_b, speed, mix],

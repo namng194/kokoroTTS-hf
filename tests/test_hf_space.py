@@ -114,6 +114,10 @@ class TestGradioApp(unittest.TestCase):
         self.assertIn("Language filter", src)
         self.assertIn("gr.Examples", src)
         self.assertIn("queue(max_size=", src)
+        # Voice auditioning + readable Vietnamese-ready font.
+        self.assertIn("def preview_voice", src)
+        self.assertIn("Nghe thử", src)
+        self.assertIn("Be Vietnam Pro", src)
 
     def test_space_frontmatter(self):
         readme = read("spaces/README.md")
