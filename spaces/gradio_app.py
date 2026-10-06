@@ -126,20 +126,15 @@ def generate(text: str, mode: str, voice: str, voice_b: str, speed: float, mix: 
 
 _LANG_ALL = "All languages"
 
-# Short preview sentence per language (kept tiny so previews render fast).
-_PREVIEW_TEXTS = {
-    "a": "Hello! This is a voice preview.",
-    "b": "Hello! This is a voice preview.",
-    "d": "Hallo! Dies ist eine Stimmprobe.",
-    "e": "¡Hola! Esta es una muestra de voz.",
-    "f": "Bonjour ! Ceci est un aperçu de voix.",
-    "h": "नमस्ते! यह आवाज़ का नमूना है।",
-    "i": "Ciao! Questa è un'anteprima della voce.",
-    "j": "こんにちは！音声のプレビューです。",
-    "p": "Olá! Esta é uma prévia de voz.",
-    "v": "Xin chào! Đây là giọng đọc mẫu.",
-    "z": "你好！这是语音预览。",
-}
+# Pre-generated voice samples bundled next to app.py (samples/ dir):
+# previews play these files directly — zero inference compute.
+_SAMPLES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "samples")
+
+
+def sample_path_for_voice(voice: str) -> str | None:
+    """Filesystem path of the bundled sample mp3 for a voice, if present."""
+    candidate = os.path.join(_SAMPLES_DIR, f"kokorotts-{voice}.mp3")
+    return candidate if os.path.isfile(candidate) else None
 
 _FONT_HEAD = (
     "<link rel='preconnect' href='https://fonts.googleapis.com'>"
@@ -196,13 +191,11 @@ def voices_for_language(option: str) -> list[tuple[str, str]]:
 
 
 def preview_voice(voice: str, speed: float):
-    """Render a short fixed sample for quick voice auditioning."""
-    speed = max(0.25, min(4.0, float(speed or 1.0)))
-    sample = _PREVIEW_TEXTS.get(voice_language(voice), _PREVIEW_TEXTS["a"])
-    result = _synthesize(sample, voice, speed, None)
-    if result is None:
-        raise RuntimeError("Preview returned no audio.")
-    return SAMPLE_RATE, result.audio
+    """Play the bundled sample file for a voice — no inference, instant."""
+    path = sample_path_for_voice(voice)
+    if path is None:
+        raise ValueError(f"No bundled sample for voice '{voice}'.")
+    return path
 
 
 def build_demo():
@@ -290,7 +283,7 @@ def build_demo():
 
             with gr.Column(scale=2):
                 preview = gr.Audio(
-                    label="🎧 Voice preview (tap Nghe thử)",
+                    label="🎧 Voice sample (tap Nghe thử — plays bundled file)",
                     interactive=False,
                 )
                 audio = gr.Audio(label="Output (24 kHz WAV)", interactive=False)

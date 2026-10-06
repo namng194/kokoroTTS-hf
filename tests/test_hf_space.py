@@ -114,10 +114,14 @@ class TestGradioApp(unittest.TestCase):
         self.assertIn("Language filter", src)
         self.assertIn("gr.Examples", src)
         self.assertIn("queue(max_size=", src)
-        # Voice auditioning + readable Vietnamese-ready font.
+        # Voice auditioning plays bundled files (no inference) + readable font.
         self.assertIn("def preview_voice", src)
+        self.assertIn("def sample_path_for_voice", src)
         self.assertIn("Nghe thử", src)
         self.assertIn("Be Vietnam Pro", src)
+        preview_body = src.split("def preview_voice")[1].split("\ndef ")[0]
+        self.assertNotIn("_synthesize", preview_body)
+        self.assertNotIn("get_runtime", preview_body)
 
     def test_space_frontmatter(self):
         readme = read("spaces/README.md")
@@ -185,6 +189,24 @@ class TestDeployHelper(unittest.TestCase):
         self.assertIn("torch==2.11.0\n", reqs)
         self.assertIn("download.pytorch.org/whl/cpu", reqs)
         self.assertNotIn("spaces==", reqs)
+
+    def test_staged_samples_cover_all_voices(self):
+        import os
+        with tempfile.TemporaryDirectory() as tmp:
+            staged = os.path.join(tmp, "space")
+            proc = subprocess.run(
+                [sys.executable, "scripts/deploy_hf_space.py",
+                 "--flavour", "gradio", "--space-id", "local/x",
+                 "--stage-dir", staged],
+                cwd=REPO_ROOT, capture_output=True, text=True, timeout=300,
+            )
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            from pathlib import Path
+            staged_samples = sorted((Path(staged) / "samples").glob("*.mp3"))
+            sys.path.insert(0, str(REPO_ROOT))
+            from kokorotts.catalog import voice_ids
+            expected = {f"kokorotts-{v}.mp3" for v in voice_ids()}
+            self.assertEqual({p.name for p in staged_samples}, expected)
 
     def test_rejects_missing_token_without_dry_run(self):
         env = {k: v for k, v in __import__("os").environ.items() if k != "HF_TOKEN"}

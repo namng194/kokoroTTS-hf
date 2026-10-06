@@ -37,6 +37,11 @@ GRADIO_FILES = [
 ]
 GRADIO_DIRS = ["kokorotts"]
 
+# Pre-generated voice samples (examples/kokorotts-<voice>.mp3): the Space
+# plays these files directly for previews — zero inference compute.
+GRADIO_SAMPLE_GLOB = "examples/kokorotts-*.mp3"
+GRADIO_SAMPLE_DEST = "samples"
+
 # spaces/requirements-gradio.txt references ../requirements-hf.txt, which
 # breaks once staged flat at the Space root. Flatten it at stage time.
 GRADIO_PIN_FILE = "spaces/requirements-gradio.txt"
@@ -117,6 +122,11 @@ def build_staging(flavour: str, dest: Path) -> list[str]:
         (dest / "requirements.txt").write_text(
             flatten_gradio_requirements(), encoding="utf-8"
         )
+        sample_dest = dest / GRADIO_SAMPLE_DEST
+        sample_dest.mkdir(exist_ok=True)
+        for sample in sorted((REPO_ROOT / "examples").glob("kokorotts-*.mp3")):
+            shutil.copy2(sample, sample_dest / sample.name)
+        staged.append(GRADIO_SAMPLE_DEST + "/")
     return staged
 
 
