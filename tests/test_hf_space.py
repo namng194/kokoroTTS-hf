@@ -114,8 +114,11 @@ class TestGradioApp(unittest.TestCase):
         self.assertIn("Language filter", src)
         self.assertIn("gr.Examples", src)
         self.assertIn("queue(max_size=", src)
-        # Voice auditioning plays bundled files (no inference) + readable font.
-        self.assertIn("def preview_voice", src)
+        # Two-zone layout: sample tab separate from inference tab.
+        self.assertIn("Nghe thử giọng mẫu", src)
+        self.assertIn("Tạo giọng đọc", src)
+        self.assertIn("gr.Tab", src)
+        self.assertIn("Dùng giọng này để tạo", src)
         self.assertIn("def sample_path_for_voice", src)
         self.assertIn("Nghe thử", src)
         self.assertIn("Be Vietnam Pro", src)
