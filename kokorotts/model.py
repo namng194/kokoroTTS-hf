@@ -1,4 +1,5 @@
 from .istftnet import Decoder
+from .local_assets import bundled_only
 from .modules import CustomAlbert, ProsodyPredictor, TextEncoder
 from .catalog import DEFAULT_MODEL_REPO_ID, MODEL_FILES
 from dataclasses import dataclass
@@ -41,7 +42,7 @@ class KModel(torch.nn.Module):
         if not isinstance(config, dict):
             if not config:
                 logger.debug("No config provided, downloading from HF")
-                config = hf_hub_download(repo_id=repo_id, filename='config.json')
+                config = hf_hub_download(repo_id=repo_id, filename='config.json', local_files_only=bundled_only())
             with open(config, 'r', encoding='utf-8') as r:
                 config = json.load(r)
                 logger.debug(f"Loaded config: {config}")
@@ -62,7 +63,7 @@ class KModel(torch.nn.Module):
             dim_out=config['n_mels'], disable_complex=disable_complex, **config['istftnet']
         )
         if not model:
-            model = hf_hub_download(repo_id=repo_id, filename=KModel.MODEL_NAMES[repo_id])
+            model = hf_hub_download(repo_id=repo_id, filename=KModel.MODEL_NAMES[repo_id], local_files_only=bundled_only())
         for key, state_dict in torch.load(model, map_location='cpu', weights_only=True).items():
             assert hasattr(self, key), key
             try:

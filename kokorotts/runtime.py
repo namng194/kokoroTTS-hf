@@ -21,6 +21,7 @@ import torch
 from huggingface_hub import hf_hub_download
 
 from .audio import SAMPLE_RATE, to_int16_audio
+from .local_assets import bundled_only
 from .catalog import (
     CUSTOM_VOICE_ASSETS,
     DEFAULT_MODEL_REPO_ID,
@@ -110,10 +111,12 @@ class InferenceRuntime:
             asset["repo_id"] if "config_file" in asset else self.repo_id,
         )
         config_path = hf_hub_download(
-            repo_id=config_repo_id, filename=asset.get("config_file", "config.json")
+            repo_id=config_repo_id, filename=asset.get("config_file", "config.json"),
+            local_files_only=bundled_only(),
         )
         model_path = hf_hub_download(
-            repo_id=asset["repo_id"], filename=asset["model_file"]
+            repo_id=asset["repo_id"], filename=asset["model_file"],
+            local_files_only=bundled_only(),
         )
         return KModel(
             repo_id=asset["repo_id"], config=config_path, model=model_path
@@ -143,7 +146,8 @@ class InferenceRuntime:
         if asset is None:
             return pipeline.load_voice(voice_id)
         voice_path = hf_hub_download(
-            repo_id=asset["repo_id"], filename=asset["voice_file"]
+            repo_id=asset["repo_id"], filename=asset["voice_file"],
+            local_files_only=bundled_only(),
         )
         pack = torch.load(voice_path, map_location="cpu", weights_only=True)
         if not hasattr(pipeline, "voices"):

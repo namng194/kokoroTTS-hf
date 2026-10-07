@@ -1,3 +1,4 @@
 # Gradio requirements for the CPU Space: torch (CPU wheels) + Gradio.
+# The [oauth] extra powers the "Sign in with Hugging Face" owner login.
 -r ../requirements-hf.txt
-gradio==5.39.0
+gradio[oauth]==5.39.0

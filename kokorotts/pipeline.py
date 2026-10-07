@@ -1,5 +1,6 @@
 from .catalog import DEFAULT_MODEL_REPO_ID, LANGUAGE_ALIASES, PIPELINE_LANGUAGE_CODES
 from .english_pronunciation import correct_english_pronunciations
+from .local_assets import bundled_only
 from .model import KModel
 from .text_normalization import normalize_english_text
 from dataclasses import dataclass
@@ -141,7 +142,7 @@ class KPipeline:
         if voice.endswith('.pt'):
             f = voice
         else:
-            f = hf_hub_download(repo_id=self.repo_id, filename=f'voices/{voice}.pt')
+            f = hf_hub_download(repo_id=self.repo_id, filename=f'voices/{voice}.pt', local_files_only=bundled_only())
             if not voice.startswith(self.lang_code):
                 v = LANG_CODES.get(voice, voice)
                 p = LANG_CODES.get(self.lang_code, self.lang_code)

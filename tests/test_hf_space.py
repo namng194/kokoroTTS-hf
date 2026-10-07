@@ -84,12 +84,14 @@ class TestGradioApp(unittest.TestCase):
         # deps (gradio inside build_demo, runtime inside get_runtime) are
         # the lazy pattern we want. kokorotts.catalog/space are light
         # (stdlib-only) and allowed at top level for the voice dropdown.
+        # `if TYPE_CHECKING` imports are annotation-only, not runtime deps.
         top_modules = set()
         for node in tree.body:
-            if isinstance(node, ast.Import):
-                top_modules.update(a.name for a in node.names)
-            elif isinstance(node, ast.ImportFrom) and node.module:
-                top_modules.add(node.module)
+            if isinstance(node, (ast.Import, ast.ImportFrom)):
+                if isinstance(node, ast.Import):
+                    top_modules.update(a.name for a in node.names)
+                elif node.module:
+                    top_modules.add(node.module)
         for heavy in ("torch", "gradio", "kokorotts.runtime", "kokorotts.api"):
             self.assertNotIn(heavy, top_modules, f"{heavy} must be imported lazily")
         self.assertIn("def generate", src)
@@ -104,19 +106,24 @@ class TestGradioApp(unittest.TestCase):
 
     def test_production_ui_contract(self):
         src = read("spaces/gradio_app.py")
-        # Public API: generate takes text/mode/voices/speed/mix + author key.
+        # Public API: generate takes text/mode/voices/speed/mix; the signed-in
+        # owner profile is injected by Gradio, not passed by clients.
         self.assertIn('api_name="generate"', src)
         self.assertIn(
-            "inputs=[text, mode, voice, voice_b, speed, mix, author_key]", src
+            "inputs=[text, mode, voice, voice_b, speed, mix]", src
         )
-        # Access gate: guests capped, author key unlocks unlimited.
-        self.assertIn("def is_authorized", src)
+        # Access gate: anonymous guests capped, signed-in owner auto-detected
+        # via HF OAuth (no manual key).
+        self.assertIn("def is_owner", src)
+        self.assertIn("gr.LoginButton", src)
+        self.assertIn("gr.OAuthProfile", src)
         self.assertIn("_GUEST_MAX_CHARS = 300", src)
-        self.assertIn("KOKOROTTS_AUTHOR_KEY", src)
-        self.assertIn("compare_digest", src)
+        self.assertIn("KOKOROTTS_OWNER", src)
+        self.assertNotIn("AUTHOR_KEY", src)
+        self.assertNotIn("author_key", src)
         # Container log records the original text of every request.
         self.assertIn("logger.info", src)
-        self.assertIn("author={}", src)
+        self.assertIn("user={}", src)
         # Production UX: language filter, char counter, examples, queue.
         self.assertIn("def language_options", src)
         self.assertIn("def voices_for_language", src)
@@ -142,6 +149,9 @@ class TestGradioApp(unittest.TestCase):
     def test_space_frontmatter(self):
         readme = read("spaces/README.md")
         self.assertIn("sdk: gradio", readme)
+        # OAuth auto-registers the Space so the owner is detected
+        # automatically (no manual key).
+        self.assertIn("hf_oauth: true", readme)
         # Must match the staged filename (deploy uploads gradio_app.py as app.py).
         self.assertIn("app_file: app.py", readme)
 
@@ -205,6 +215,7 @@ class TestDeployHelper(unittest.TestCase):
         self.assertIn("torch==2.11.0\n", reqs)
         self.assertIn("download.pytorch.org/whl/cpu", reqs)
         self.assertNotIn("spaces==", reqs)
+        self.assertIn("gradio[oauth]==", reqs)
 
     def test_staged_samples_cover_all_voices(self):
         import os
@@ -235,37 +246,103 @@ class TestDeployHelper(unittest.TestCase):
 
 
 class TestAuthorGate(unittest.TestCase):
-    def test_guest_rejected_before_runtime(self):
-        sys.path.insert(0, str(REPO_ROOT))
-        os.environ.pop("KOKOROTTS_AUTHOR_KEY", None)
+    @staticmethod
+    def _module(name):
+        if str(REPO_ROOT) not in sys.path:
+            sys.path.insert(0, str(REPO_ROOT))
         import importlib.util
         spec = importlib.util.spec_from_file_location(
-            "gapp_gate", str(REPO_ROOT / "spaces" / "gradio_app.py")
+            name, str(REPO_ROOT / "spaces" / "gradio_app.py")
         )
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        self.assertFalse(module.is_authorized(""))
-        self.assertFalse(module.is_authorized(None))
-        self.assertFalse(module.is_authorized("anything"))
-        with self.assertRaises(ValueError) as ctx:
-            module.generate("x" * 301, "Single", "af_heart",
-                            "af_bella", 1.0, 0.5)
-        self.assertIn("300", str(ctx.exception))
+        return module
 
-    def test_author_key_unlocks(self):
+    def test_owner_detected_automatically(self):
+        from types import SimpleNamespace
+        module = self._module("gapp_gate_owner")
+        self.assertTrue(module.is_owner(SimpleNamespace(username="nam194")))
+        self.assertFalse(module.is_owner(SimpleNamespace(username="stranger")))
+        self.assertFalse(module.is_owner(SimpleNamespace(username=None)))
+        self.assertFalse(module.is_owner(None))
+
+    def test_guest_truncated_before_runtime(self):
+        module = self._module("gapp_gate_guest")
+        calls = {}
+
+        class FakeResult:
+            audio = [0.1, 0.2]
+
+        class FakeRuntime:
+            def synthesize(self, **kwargs):
+                calls.update(kwargs)
+                return FakeResult()
+
+        module.get_runtime = lambda: FakeRuntime()
+        module.generate("x" * 301, "Single", "af_heart",
+                        "af_bella", 1.0, 0.5)
+        self.assertEqual(len(calls["text"]), 300)
+
+    def test_no_guest_limit_line_in_ui(self):
+        src = read("spaces/gradio_app.py")
+        self.assertNotIn("Guests: max", src)
+
+    def test_owner_unlimited_past_runtime_gate(self):
+        # Owner with long text must pass validation (only the runtime,
+        # not the gate, may stop it — so stub the runtime out).
+        from types import SimpleNamespace
+        module = self._module("gapp_gate_unlimited")
+        calls = {}
+
+        class FakeResult:
+            audio = [0.1, 0.2]
+
+        class FakeRuntime:
+            def synthesize(self, **kwargs):
+                calls.update(kwargs)
+                return FakeResult()
+
+        module.get_runtime = lambda: FakeRuntime()
+        out = module.generate(
+            "y" * 301, "Single", "af_heart", "af_bella", 1.0, 0.5,
+            SimpleNamespace(username="nam194"),
+        )
+        self.assertEqual(out[0], 24000)
+        self.assertEqual(len(calls["text"]), 301)
+
+
+class TestBundledCheckpoints(unittest.TestCase):
+    def test_models_cover_all_families(self):
         sys.path.insert(0, str(REPO_ROOT))
-        os.environ["KOKOROTTS_AUTHOR_KEY"] = "test-secret"
-        try:
-            import importlib.util
-            spec = importlib.util.spec_from_file_location(
-                "gapp_gate_auth", str(REPO_ROOT / "spaces" / "gradio_app.py")
-            )
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-            self.assertTrue(module.is_authorized("test-secret"))
-            self.assertFalse(module.is_authorized("wrong"))
-        finally:
-            os.environ.pop("KOKOROTTS_AUTHOR_KEY", None)
+        sys.path.insert(0, str(REPO_ROOT / "scripts"))
+        from kokorotts.catalog import MODEL_FAMILY_CHOICES
+        from deploy_hf_space import MODEL_CACHE_DIRS
+        from kokorotts import catalog
+        repos = set()
+        for name in dir(catalog):
+            if name.endswith("REPO_ID"):
+                repos.add(getattr(catalog, name))
+        for family in ("kikiri-german-martin", "kikiri-german-victoria"):
+            repos.add(f"kikiri-tts/kikiri-german-{family.split('-')[-1]}")
+        cached = {d[len("models--"):].replace("--", "/")
+                  for d in MODEL_CACHE_DIRS}
+        for repo in ("hexgrad/Kokoro-82M",
+                     "kikiri-tts/kikiri-german-martin",
+                     "kikiri-tts/kikiri-german-victoria",
+                     "contextboxai/Kokoro-Vietnamese"):
+            self.assertIn(repo, cached, f"checkpoint not bundled: {repo}")
+        self.assertEqual(len(MODEL_FAMILY_CHOICES), 4)
+
+    def test_checkpoint_sourcing(self):
+        src = read("spaces/gradio_app.py")
+        # Free Space repos cap at 1GB < 1.3GB weights: weights stay on the
+        # Hub model repos (lazy fetch), never forced-bundled here.
+        self.assertNotIn('KOKOROTTS_BUNDLED_CHECKPOINTS"] = "1"', src)
+        # The local-only mechanism still exists for pre-seeded workspaces.
+        for name in ("kokorotts/model.py", "kokorotts/pipeline.py",
+                     "kokorotts/runtime.py"):
+            mod_src = read(name)
+            self.assertIn("local_files_only=bundled_only()", mod_src)
 
 
 class TestVoiceBlendWiring(unittest.TestCase):

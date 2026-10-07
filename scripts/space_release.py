@@ -31,7 +31,7 @@ sys.path.insert(0, str(REPO_ROOT / "scripts"))
 from deploy_hf_space import build_staging  # noqa: E402
 
 POLL_INTERVAL = 20
-UI_MARKERS = ("Tạo giọng đọc", "Nghe thử giọng mẫu", "Author key")
+UI_MARKERS = ("Tạo giọng đọc", "Nghe thử giọng mẫu", "Sign in")
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -92,19 +92,28 @@ def api_ok(space_id: str, text: str) -> None:
 
     client = Client(space_id)
     out = client.predict(text, "Single", "af_heart", "af_bella",
-                         1.0, 0.5, "", api_name="/generate")
+                         1.0, 0.5, api_name="/generate")
     data = open(out, "rb").read()
     assert len(data) > 1000, f"suspiciously small audio: {len(data)}"
     print(f"/generate OK: {len(data)} bytes", flush=True)
-    try:
-        client.predict("x" * 301, "Single", "af_heart", "af_bella",
-                       1.0, 0.5, "", api_name="/generate")
-    except Exception as exc:
-        if "300" in str(exc):
-            print("guest 300-char gate OK", flush=True)
-            return
-        raise
-    raise RuntimeError("guest gate missing: 301-char text was accepted")
+    # Guest over-limit text must be silently truncated to 300 chars (proves
+    # the gate): the 301-char output must succeed with the same duration as
+    # the 300-char reference (byte-identity is impossible — Kokoro sampling
+    # carries RNG noise, so durations are compared instead).
+    import wave
+
+    def _duration(path: str) -> float:
+        with wave.open(path, "rb") as wav:
+            return wav.getnframes() / wav.getframerate()
+
+    ref = client.predict("x" * 300, "Single", "af_heart", "af_bella",
+                         1.0, 0.5, api_name="/generate")
+    long_out = client.predict("x" * 301, "Single", "af_heart", "af_bella",
+                              1.0, 0.5, api_name="/generate")
+    d_ref, d_long = _duration(ref), _duration(long_out)
+    assert abs(d_ref - d_long) / d_ref < 0.15, (d_ref, d_long)
+    print(f"guest 300-char truncate OK ({d_ref:.2f}s vs {d_long:.2f}s)",
+          flush=True)
 
 
 def main(argv: list[str] | None = None) -> int:

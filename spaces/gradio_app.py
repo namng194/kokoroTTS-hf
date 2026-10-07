@@ -5,30 +5,49 @@ Runs entirely on Space CPU. Serves the complete 70-voice catalogue.
 
 from __future__ import annotations
 
-import hmac
 import os
 import threading
+from typing import TYPE_CHECKING
 
 from loguru import logger
 
-# Access gate: guests are capped per request, the author key unlocks
-# unlimited length. Secret lives in the Space secrets as KOKOROTTS_AUTHOR_KEY.
+if TYPE_CHECKING:
+    # Annotation-only import: keeps `gr` lazy at runtime while letting
+    # typing.get_type_hints (used by Gradio to detect the OAuth profile
+    # parameter) resolve names via module globals (injected in build_demo).
+    import gradio as gr
+
+# Access gate: anonymous guests are capped per request; the Space owner
+# signs in with Hugging Face (LoginButton + hf_oauth) and is detected
+# automatically — no manual key. Owner name is configurable via env.
 _GUEST_MAX_CHARS = 300
-_AUTHOR_KEY_ENV = "KOKOROTTS_AUTHOR_KEY"
+_OWNER_ENV = "KOKOROTTS_OWNER"
+_DEFAULT_OWNER = "nam194"
 _LOG_TEXT_CAP = 2000
 
 
-def is_authorized(author_key: str | None) -> bool:
-    """True only when the key matches the configured author secret."""
-    secret = os.getenv(_AUTHOR_KEY_ENV, "")
-    if not secret or not author_key:
-        return False
-    return hmac.compare_digest(author_key, secret)
+def space_owner() -> str:
+    return os.getenv(_OWNER_ENV, _DEFAULT_OWNER)
+
+
+def is_owner(profile) -> bool:
+    """True only for the signed-in Space owner (None/others → False)."""
+    return (
+        profile is not None
+        and getattr(profile, "username", None) == space_owner()
+    )
 
 # Hard defaults: full 70 voices, inference device is always CPU.
 os.environ.setdefault("KOKOROTTS_PRELOAD", "all")
 os.environ.setdefault("KOKOROTTS_DEVICE", "cpu")
 os.environ.setdefault("KOKOROTTS_HF_SPACE", "1")
+
+# Weights live on the Hub model repos (a full bundle exceeds the free Space
+# repo cap, see below) and are fetched lazily on first use, then cached.
+# KOKOROTTS_BUNDLED_CHECKPOINTS=1 remains available to force local-only
+# lookups when checkpoints ARE pre-seeded (e.g. PRO workspaces).
+_APP_DIR = os.path.dirname(os.path.abspath(__file__))
+os.environ["HF_HUB_CACHE"] = os.path.join(_APP_DIR, "hf-cache", "hub")
 
 from kokorotts.catalog import (
     LANGUAGE_CHOICES,
@@ -115,25 +134,20 @@ def _synthesize(text: str, voice: str, speed: float, voice_blend):
         )
 
 
-def generate(text: str, mode: str, voice: str, voice_b: str, speed: float, mix: float, author_key: str = ""):
-    authorized = is_authorized(author_key)
-    if authorized:
-        text = (text or "").strip()
-    else:
-        text = check_text_length(text)
-        if len(text) > _GUEST_MAX_CHARS:
-            raise ValueError(
-                f"Guest limit is {_GUEST_MAX_CHARS} characters per request "
-                f"(got {len(text)}). Enter the author key for unlimited length."
-            )
+def generate(text: str, mode: str, voice: str, voice_b: str, speed: float, mix: float, oauth_profile: "gr.OAuthProfile | None" = None):
+    authorized = is_owner(oauth_profile)
+    text = check_text_length(text)
+    if not authorized and len(text) > _GUEST_MAX_CHARS:
+        text = text[:_GUEST_MAX_CHARS]
     if not text:
         raise ValueError("Please enter some text first.")
+    who = getattr(oauth_profile, "username", None) or "guest"
     logged = text if len(text) <= _LOG_TEXT_CAP else (
         text[:_LOG_TEXT_CAP] + f"…[truncated {len(text) - _LOG_TEXT_CAP} chars]"
     )
     logger.info(
-        "generate voice={} mode={} speed={} chars={} author={} text={!r}",
-        voice, mode, speed, len(text), authorized, logged,
+        "generate voice={} mode={} speed={} chars={} user={} owner={} text={!r}",
+        voice, mode, speed, len(text), who, authorized, logged,
     )
     speed = max(0.25, min(4.0, float(speed or 1.0)))
     voice_blend = None
@@ -233,6 +247,10 @@ def preview_voice(voice: str, speed: float):
 def build_demo():
     import gradio as gr
 
+    # Make annotation names resolvable for Gradio's get_type_hints-based
+    # special-parameter detection (OAuthProfile injection).
+    globals().update({"gr": gr, "OAuthProfile": gr.OAuthProfile})
+
     summary = profile_summary()
     all_voices = voice_choices()
 
@@ -259,6 +277,12 @@ def build_demo():
             "<span class='kokoro-badge'>24 kHz output</span>"
             "</div></div>"
         )
+        with gr.Row():
+            login_btn = gr.LoginButton("Sign in with 🤗 (owner: unlimited)")
+            login_status = gr.Markdown(
+                "_Browsing as guest — 300 characters per request._"
+            )
+        owner_state = gr.State(False)
 
         gr.Markdown("## 🔊 Tạo giọng đọc")
         gr.Markdown(
@@ -312,11 +336,6 @@ def build_demo():
                         label="Speed", minimum=0.25, maximum=4.0,
                         step=0.05, value=1.0,
                     )
-                    author_key = gr.Textbox(
-                        label="Author key (optional)",
-                        placeholder="Guests: 300 chars · key: unlimited",
-                        type="password",
-                    )
                 with gr.Row():
                     btn = gr.Button(
                         "🔊 Generate", variant="primary", scale=2
@@ -326,10 +345,6 @@ def build_demo():
             with gr.Column(scale=2):
                 audio = gr.Audio(
                     label="Output (24 kHz WAV)", interactive=False
-                )
-                gr.Markdown(
-                    f"_Guests: max {_GUEST_MAX_CHARS} characters per request · "
-                    f"author key: unlimited. Profile: `{summary['preload']}`._"
                 )
                 with gr.Accordion(
                     "How voice blending works", open=False
@@ -356,11 +371,11 @@ def build_demo():
 
         gr.Examples(
             examples=[
-                ["Hello from KokoroTTS-HF on Space CPU.", "Single", "af_heart", "af_bella", 1.0, 0.5, ""],
-                ["Xin chào, đây là giọng đọc tiếng Việt chạy hoàn toàn trên CPU.", "Single", "diem_trinh", "af_bella", 1.0, 0.5, ""],
-                ["Two voices become one.", "Blend", "af_heart", "af_bella", 1.0, 0.5, ""],
+                ["Hello from KokoroTTS-HF on Space CPU.", "Single", "af_heart", "af_bella", 1.0, 0.5],
+                ["Xin chào, đây là giọng đọc tiếng Việt chạy hoàn toàn trên CPU.", "Single", "diem_trinh", "af_bella", 1.0, 0.5],
+                ["Two voices become one.", "Blend", "af_heart", "af_bella", 1.0, 0.5],
             ],
-            inputs=[text, mode, voice, voice_b, speed, mix, author_key],
+            inputs=[text, mode, voice, voice_b, speed, mix],
             label="Try an example",
         )
 
@@ -430,9 +445,24 @@ def build_demo():
                 gr.Dropdown(choices=options, value=keep_b),
             )
 
-        def _count_chars(value: str | None):
-            return f"_{len(value or '')} characters._"
+        def _count_chars(value: str | None, owner: bool = False):
+            capped = value if owner else (value or "")[:_GUEST_MAX_CHARS]
+            return capped, f"_{len(capped or '')} characters._"
 
+        def _whoami(oauth_profile: "gr.OAuthProfile | None" = None):
+            owner = is_owner(oauth_profile)
+            if oauth_profile is not None:
+                status = (
+                    f"_Signed in as **{oauth_profile.username}** — "
+                    + ("unlimited length unlocked._"
+                       if owner
+                       else "guest limit applies._")
+                )
+            else:
+                status = "_Browsing as guest — 300 characters per request._"
+            return status, owner
+
+        demo.load(fn=_whoami, inputs=None, outputs=[login_status, owner_state])
         mode.change(fn=_toggle_blend, inputs=mode, outputs=blend_row)
         lang_sample.change(
             fn=_filter_sample_voices, inputs=[lang_sample, sample_voice],
@@ -446,10 +476,11 @@ def build_demo():
             fn=_filter_voices, inputs=[lang, voice, voice_b],
             outputs=[voice, voice_b],
         )
-        text.change(fn=_count_chars, inputs=text, outputs=counter)
+        text.change(fn=_count_chars, inputs=[text, owner_state],
+                      outputs=[text, counter])
         btn.click(
             fn=generate,
-            inputs=[text, mode, voice, voice_b, speed, mix, author_key],
+            inputs=[text, mode, voice, voice_b, speed, mix],
             outputs=audio,
             api_name="generate",
         )

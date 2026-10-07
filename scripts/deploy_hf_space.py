@@ -26,6 +26,43 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
+# Checkpoint families baked into the Space repo: the app runs with
+# HF_HUB_OFFLINE=1 and reads only from hf-cache/hub/ staged below.
+# Mirrors the families in kokorotts/catalog.py MODEL_FAMILY_CHOICES.
+MODEL_CACHE_DIRS = [
+    "models--hexgrad--Kokoro-82M",
+    "models--kikiri-tts--kikiri-german-martin",
+    "models--kikiri-tts--kikiri-german-victoria",
+    "models--contextboxai--Kokoro-Vietnamese",
+]
+MODELS_DEST = "hf-cache/hub"
+
+
+def local_hub_cache() -> Path:
+    override = os.getenv("HF_HUB_CACHE")
+    if override:
+        return Path(override)
+    return Path.home() / ".cache" / "huggingface" / "hub"
+
+
+def stage_models(dest: Path) -> list[str]:
+    """Copy checkpoint cache dirs into dest/hf-cache/hub/ (Space repo)."""
+    src_root = local_hub_cache()
+    hub_dest = dest / MODELS_DEST
+    hub_dest.mkdir(parents=True, exist_ok=True)
+    staged: list[str] = []
+    for dirname in MODEL_CACHE_DIRS:
+        src = src_root / dirname
+        if not src.is_dir():
+            raise FileNotFoundError(
+                f"Checkpoint cache missing: {src} "
+                "(run one local inference first to populate it)"
+            )
+        shutil.copytree(src, hub_dest / dirname,
+                        ignore=shutil.ignore_patterns(".locks"))
+        staged.append(f"{MODELS_DEST}/{dirname}/")
+    return staged
+
 GRADIO_FILES = [
     ("spaces/gradio_app.py", "app.py"),
     ("spaces/requirements-gradio.txt", "requirements.txt"),

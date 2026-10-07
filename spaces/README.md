@@ -5,6 +5,7 @@ colorFrom: purple
 colorTo: indigo
 sdk: gradio
 sdk_version: 5.39.0
+hf_oauth: true
 app_file: app.py
 hardware: cpu-basic
 pinned: false
